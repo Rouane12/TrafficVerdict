@@ -56,14 +56,13 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response) -> Response:
+def logout(response: Response) -> None:
     response.delete_cookie(
         key=settings.session_cookie_name,
         path="/",
         secure=settings.cookie_secure,
         samesite="lax",
     )
-    return response
 
 
 @router.get("/me", response_model=UserResponse)
