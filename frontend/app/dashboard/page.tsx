@@ -17,6 +17,9 @@ export default function DashboardPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState("");
   const [sites, setSites] = useState<Site[]>([]);
+  const [siteName, setSiteName] = useState("");
+  const [siteDomain, setSiteDomain] = useState("");
+  const [siteTimezone, setSiteTimezone] = useState("UTC");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -70,20 +73,20 @@ export default function DashboardPage() {
     event.preventDefault();
     if (!selectedWorkspaceId) return;
     setError("");
-    const form = event.currentTarget;
-    const data = new FormData(form);
 
     try {
       const site = await api<Site>(`/workspaces/${selectedWorkspaceId}/sites`, {
         method: "POST",
         body: JSON.stringify({
-          name: data.get("name"),
-          domain: data.get("domain"),
-          timezone: data.get("timezone") || "UTC",
+          name: siteName,
+          domain: siteDomain,
+          timezone: siteTimezone || "UTC",
         }),
       });
       setSites((current) => [...current, site]);
-      form.reset();
+      setSiteName("");
+      setSiteDomain("");
+      setSiteTimezone("UTC");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to add site");
     }
@@ -149,10 +152,37 @@ export default function DashboardPage() {
           <section className="panel onboarding-panel">
             <span className="eyebrow">Site setup</span>
             <h2>{sites.length === 0 ? "Add your first site" : "Add another site"}</h2>
-            <form className="site-form" onSubmit={createSite}>
-              <input className="input" name="name" placeholder="Neural Critic" maxLength={120} required />
-              <input className="input" name="domain" placeholder="example.com" maxLength={255} required />
-              <input className="input" name="timezone" placeholder="UTC" defaultValue="UTC" maxLength={64} required />
+            <form className="site-form" onSubmit={createSite} autoComplete="off">
+              <input
+                className="input"
+                name="name"
+                placeholder="Neural Critic"
+                value={siteName}
+                onChange={(event) => setSiteName(event.target.value)}
+                maxLength={120}
+                autoComplete="off"
+                required
+              />
+              <input
+                className="input"
+                name="domain"
+                placeholder="example.com"
+                value={siteDomain}
+                onChange={(event) => setSiteDomain(event.target.value)}
+                maxLength={255}
+                autoComplete="off"
+                required
+              />
+              <input
+                className="input"
+                name="timezone"
+                placeholder="UTC"
+                value={siteTimezone}
+                onChange={(event) => setSiteTimezone(event.target.value)}
+                maxLength={64}
+                autoComplete="off"
+                required
+              />
               <button className="button" type="submit">Add site</button>
             </form>
           </section>
@@ -161,7 +191,7 @@ export default function DashboardPage() {
             <div className="section-heading">
               <div>
                 <span className="eyebrow">Sites</span>
-                <h2>{sites.length ? "Your analytics workspaces" : "No sites yet"}</h2>
+                <h2>{sites.length ? "Your sites" : "No sites yet"}</h2>
               </div>
             </div>
 
