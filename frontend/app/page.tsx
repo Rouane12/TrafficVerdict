@@ -5,7 +5,10 @@ export default function HomePage() {
     <main className="shell">
       <header className="topbar">
         <div className="brand">TrafficVerdict</div>
-        <Link href="/dashboard">Dashboard</Link>
+        <nav className="topbar-actions">
+          <Link href="/login">Sign in</Link>
+          <Link className="button compact" href="/register">Create account</Link>
+        </nav>
       </header>
 
       <section className="hero">
@@ -16,9 +19,10 @@ export default function HomePage() {
           and shows the evidence behind each conclusion without pretending unlike metrics
           should match.
         </p>
-        <Link className="button" href="/dashboard">
-          Open dashboard shell
-        </Link>
+        <div className="actions">
+          <Link className="button" href="/register">Start with your site</Link>
+          <Link className="button ghost" href="/login">Sign in</Link>
+        </div>
       </section>
     </main>
   );
