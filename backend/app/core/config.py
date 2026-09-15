@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "TrafficVerdict API"
     environment: str = "development"
-    database_url: str = "postgresql+psycopg://trafficverdict:trafficverdict_dev@localhost:5432/trafficverdict"
+    database_url: str = "postgresql+psycopg://trafficverdict:trafficverdict_dev@localhost:55432/trafficverdict"
     frontend_origin: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(
