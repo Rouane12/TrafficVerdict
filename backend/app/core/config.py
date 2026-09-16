@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = 60 * 60 * 24 * 7
     cookie_secure: bool = False
 
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:8000/api/integrations/google/callback"
+    google_analytics_scope: str = "https://www.googleapis.com/auth/analytics.readonly"
+    credential_encryption_secret: str = "trafficverdict-local-credential-key-change-before-production"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
