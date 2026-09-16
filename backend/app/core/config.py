@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/api/integrations/google/callback"
     google_analytics_scope: str = "https://www.googleapis.com/auth/analytics.readonly"
+    google_search_console_redirect_uri: str = "http://localhost:8000/api/integrations/search-console/callback"
+    google_search_console_scope: str = "https://www.googleapis.com/auth/webmasters.readonly"
     credential_encryption_secret: str = "trafficverdict-local-credential-key-change-before-production"
 
     model_config = SettingsConfigDict(

@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { api } from "../../lib/api";
 import { GoogleAnalyticsPanel } from "./google-analytics-panel";
+import { SearchConsolePanel } from "./search-console-panel";
 
 type User = { id: string; email: string; display_name: string | null };
 type Workspace = { id: string; name: string; slug: string };
 type Site = { id: string; workspace_id: string; name: string; domain: string; timezone: string };
-
-const upcomingProviders = ["Search Console", "Cloudflare"] as const;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -204,16 +203,15 @@ export default function DashboardPage() {
                       <h2>{site.name}</h2>
                       <p className="muted">{site.domain} · {site.timezone}</p>
                     </div>
-                    <span className="status">Milestone 2</span>
+                    <span className="status">Milestone 3</span>
                   </div>
                   <div className="provider-grid">
                     <GoogleAnalyticsPanel siteId={site.id} />
-                    {upcomingProviders.map((provider) => (
-                      <div className="provider-row" key={provider}>
-                        <span>{provider}</span>
-                        <span className="muted">Not connected</span>
-                      </div>
-                    ))}
+                    <SearchConsolePanel siteId={site.id} />
+                    <div className="provider-row">
+                      <span>Cloudflare</span>
+                      <span className="muted">Not connected</span>
+                    </div>
                   </div>
                 </article>
               ))}
