@@ -1,0 +1,114 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TrafficVerdict: Start Database",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "up", "-d", "--wait", "postgres"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "TrafficVerdict: Stop Database",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "stop", "postgres"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TrafficVerdict: Install Backend Dependencies",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pip", "install", "-r", "requirements.txt"],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TrafficVerdict: Run Migrations",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "alembic", "upgrade", "head"],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TrafficVerdict: Prepare Backend",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "TrafficVerdict: Start Database",
+        "TrafficVerdict: Install Backend Dependencies",
+        "TrafficVerdict: Run Migrations"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "TrafficVerdict: Start Backend",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "uvicorn", "app.main:app", "--reload"],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "trafficverdict-dev",
+        "clear": true
+      }
+    },
+    {
+      "label": "TrafficVerdict: Install Frontend Dependencies",
+      "type": "process",
+      "command": "npm.cmd",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "TrafficVerdict: Start Frontend",
+      "type": "process",
+      "command": "npm.cmd",
+      "args": ["run", "dev"],
+      "options": {
+        "cwd": "${workspaceFolder}\\frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "trafficverdict-dev",
+        "clear": true
+      }
+    },
+    {
+      "label": "TrafficVerdict: Backend Tests",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "pytest"],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
