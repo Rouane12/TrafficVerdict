@@ -9,3 +9,4 @@ httpx
 argon2-cffi
 PyJWT
 email-validator
+cryptography
