@@ -4,21 +4,27 @@ Understand why your website analytics disagree — reconcile GA4, Search Console
 
 ## Development status
 
-Milestone 1: Application Foundation.
+Milestone 1 — Application Foundation: **complete and locally validated**.
+
+Milestone 2 — Google Analytics Integration: **in progress**.
 
 Current foundation:
 
-- Next.js + TypeScript frontend shell
+- Next.js + TypeScript frontend
 - FastAPI backend
 - PostgreSQL for local development
 - SQLAlchemy database layer
 - Alembic migrations
-- core models for users, workspaces, workspace members, sites, and analytics connections
-- environment configuration
+- first-party authentication with protected workspace/site routes
+- users, workspaces, workspace members, sites, and analytics connections
+- Google OAuth connection flow
+- GA4 account/property discovery
+- encrypted provider credentials
+- manual GA4 sync
+- normalized GA4 metric snapshots
 - `/api/health` smoke endpoint
-- backend smoke test
 
-Authentication and protected workspace/site routes are the next Milestone 1 step.
+See `docs/GA4_SETUP.md` for the local Google Cloud/OAuth setup required to test Milestone 2.
 
 ## Repository structure
 
@@ -31,10 +37,14 @@ TrafficVerdict/
 │   │   ├── core/
 │   │   ├── db/
 │   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
 │   │   └── main.py
 │   └── tests/
 ├── frontend/
-│   └── app/
+│   ├── app/
+│   └── lib/
+├── docs/
 ├── docker-compose.yml
 └── README.md
 ```
@@ -43,14 +53,6 @@ TrafficVerdict/
 
 ```bash
 docker compose up -d postgres
-```
-
-## Run database migrations
-
-From `backend/` after installing the Python dependencies:
-
-```bash
-alembic upgrade head
 ```
 
 ## Run the backend
