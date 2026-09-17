@@ -12,6 +12,8 @@ class CanonicalWindow(BaseModel):
     end: date
     days: int
     rule: str
+    requested_days: int | None = None
+    available_days: int
 
 
 class SourceFreshness(BaseModel):
