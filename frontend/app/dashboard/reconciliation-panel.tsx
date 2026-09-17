@@ -50,7 +50,6 @@ function sourceLabel(source: unknown) {
 function evidenceSummary(item: Record<string, unknown>) {
   const parts = Object.entries(item)
     .filter(([key]) => key !== "source")
-    .slice(0, 4)
     .map(([key, value]) => `${key.replaceAll("_", " ")}: ${Array.isArray(value) ? value.join(", ") : String(value)}`);
   return parts.join(" · ");
 }
@@ -59,6 +58,7 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
   const [data, setData] = useState<ReconciliationResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
 
   async function refresh() {
     setBusy(true);
@@ -75,6 +75,23 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
   useEffect(() => {
     void refresh();
   }, [siteId]);
+
+  useEffect(() => {
+    if (!selectedFinding) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setSelectedFinding(null);
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedFinding]);
 
   if (variant === "summary") {
     return (
@@ -125,55 +142,114 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
   }
 
   return (
-    <section className="reconciliation-panel">
-      <div className="reconciliation-heading">
-        <div>
-          <span className="eyebrow">TrafficVerdict</span>
-          <h3>{data ? headline(data.overall_state) : "Building your verdict…"}</h3>
-          <p className="muted small">
-            {data?.canonical_window?.start && data?.canonical_window?.end
-              ? `${data.canonical_window.start} → ${data.canonical_window.end} · ${data.finding_count} finding${data.finding_count === 1 ? "" : "s"}`
-              : "Deterministic reconciliation from normalized evidence."}
-          </p>
+    <>
+      <section className="reconciliation-panel">
+        <div className="reconciliation-heading">
+          <div>
+            <span className="eyebrow">TrafficVerdict</span>
+            <h3>{data ? headline(data.overall_state) : "Building your verdict…"}</h3>
+            <p className="muted small">
+              {data?.canonical_window?.start && data?.canonical_window?.end
+                ? `${data.canonical_window.start} → ${data.canonical_window.end} · ${data.finding_count} finding${data.finding_count === 1 ? "" : "s"}`
+                : "Deterministic reconciliation from normalized evidence."}
+            </p>
+          </div>
+          <button className="button compact" type="button" disabled={busy} onClick={() => void refresh()}>
+            {busy ? "Reconciling…" : "Run verdict"}
+          </button>
         </div>
-        <button className="button compact" type="button" disabled={busy} onClick={() => void refresh()}>
-          {busy ? "Reconciling…" : "Run verdict"}
-        </button>
-      </div>
 
-      {data ? (
-        <div className="finding-list">
-          {data.findings.map((finding) => (
-            <article className={`finding-card severity-${finding.severity}`} key={`${finding.rule_id}-${finding.title}`}>
-              <div className="finding-title-row">
-                <div>
-                  <span className="finding-severity">{finding.severity}</span>
-                  <h4>{finding.title}</h4>
+        {data ? (
+          <div className="finding-list">
+            {data.findings.map((finding) => (
+              <article className={`finding-card severity-${finding.severity}`} key={`${finding.rule_id}-${finding.title}`}>
+                <div className="finding-title-row">
+                  <div>
+                    <span className="finding-severity">{finding.severity}</span>
+                    <h4>{finding.title}</h4>
+                  </div>
+                  <span className="status">{finding.confidence} confidence</span>
                 </div>
-                <span className="status">{finding.confidence} confidence</span>
-              </div>
-              <p className="muted finding-explanation">{finding.explanation}</p>
-              <div className="finding-next">
-                <strong>Next check</strong>
-                <span className="muted small">{finding.suggested_next_check}</span>
-              </div>
-              <details className="finding-evidence">
-                <summary>Evidence · {finding.rule_id}</summary>
-                <div className="finding-evidence-list">
-                  {finding.source_evidence.map((item, index) => (
-                    <div key={`${finding.rule_id}-${index}`}>
-                      <strong>{sourceLabel(item.source)}</strong>
-                      <span className="muted tiny">{evidenceSummary(item)}</span>
-                    </div>
-                  ))}
+                <p className="muted finding-explanation">{finding.explanation}</p>
+                <div className="finding-next">
+                  <strong>Next check</strong>
+                  <span className="muted small">{finding.suggested_next_check}</span>
                 </div>
-              </details>
-            </article>
-          ))}
+                <button className="finding-evidence-button" type="button" onClick={() => setSelectedFinding(finding)}>
+                  View evidence
+                  <span aria-hidden="true">→</span>
+                </button>
+              </article>
+            ))}
+          </div>
+        ) : null}
+
+        {error ? <p className="provider-error">{error}</p> : null}
+      </section>
+
+      {selectedFinding ? (
+        <div className="evidence-overlay" role="presentation" onMouseDown={() => setSelectedFinding(null)}>
+          <aside
+            className="evidence-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="evidence-drawer-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="evidence-drawer-header">
+              <div>
+                <span className="eyebrow">Evidence</span>
+                <h3 id="evidence-drawer-title">{selectedFinding.title}</h3>
+              </div>
+              <button className="evidence-close" type="button" aria-label="Close evidence" onClick={() => setSelectedFinding(null)}>
+                ×
+              </button>
+            </div>
+
+            <div className="evidence-meta">
+              <span className="status">{selectedFinding.confidence} confidence</span>
+              <span className="status">{selectedFinding.severity}</span>
+            </div>
+
+            <section className="evidence-drawer-section">
+              <span className="evidence-label">Why this finding exists</span>
+              <p className="muted">{selectedFinding.explanation}</p>
+            </section>
+
+            <section className="evidence-drawer-section">
+              <span className="evidence-label">Source evidence</span>
+              <div className="finding-evidence-list drawer-evidence-list">
+                {selectedFinding.source_evidence.map((item, index) => (
+                  <div key={`${selectedFinding.rule_id}-${index}`}>
+                    <strong>{sourceLabel(item.source)}</strong>
+                    <span className="muted tiny">{evidenceSummary(item)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="evidence-drawer-section">
+              <span className="evidence-label">Next check</span>
+              <p className="muted">{selectedFinding.suggested_next_check}</p>
+            </section>
+
+            <section className="evidence-drawer-section evidence-rule-meta">
+              <div>
+                <span className="evidence-label">Rule</span>
+                <code>{selectedFinding.rule_id}</code>
+              </div>
+              <div>
+                <span className="evidence-label">Rule version</span>
+                <span>{selectedFinding.rule_version}</span>
+              </div>
+              <div>
+                <span className="evidence-label">Generated</span>
+                <span>{new Date(selectedFinding.generated_at).toLocaleString()}</span>
+              </div>
+            </section>
+          </aside>
         </div>
       ) : null}
-
-      {error ? <p className="provider-error">{error}</p> : null}
-    </section>
+    </>
   );
 }
