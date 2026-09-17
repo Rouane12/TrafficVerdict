@@ -168,6 +168,15 @@ def _row_values(row: dict[str, Any] | None) -> tuple[int, int, int, float]:
     )
 
 
+def _zone_from_payload(payload: dict[str, Any]) -> dict[str, Any] | None:
+    data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+    viewer = data.get("viewer") if isinstance(data.get("viewer"), dict) else {}
+    zones = viewer.get("zones") if isinstance(viewer.get("zones"), list) else []
+    if not zones or not isinstance(zones[0], dict):
+        return None
+    return zones[0]
+
+
 async def fetch_cloudflare_snapshot(connection: Connection) -> dict[str, Any]:
     if not connection.external_resource_id:
         raise CloudflareError("Select a Cloudflare zone before syncing")
@@ -177,51 +186,88 @@ async def fetch_cloudflare_snapshot(connection: Connection) -> dict[str, Any]:
     start_date = end_exclusive - timedelta(days=28)
     end_date = end_exclusive - timedelta(days=1)
 
-    payload = await _graphql(
-        api_token,
-        CLOUDFLARE_TRAFFIC_QUERY,
-        {
-            "zoneTag": connection.external_resource_id,
-            "start": _iso_utc(start_date),
-            "end": _iso_utc(end_exclusive),
-        },
-    )
-
-    viewer = payload.get("data", {}).get("viewer", {}) if isinstance(payload.get("data"), dict) else {}
-    zones = viewer.get("zones", []) if isinstance(viewer, dict) else []
-    if not zones:
-        raise CloudflareError("Cloudflare returned no analytics for the selected zone")
-
-    zone = zones[0] if isinstance(zones[0], dict) else {}
-    summary_rows = zone.get("summary", []) if isinstance(zone.get("summary"), list) else []
-    hourly_rows = zone.get("hourly", []) if isinstance(zone.get("hourly"), list) else []
-
-    requests, visits, data_transfer_bytes, sample_interval = _row_values(
-        summary_rows[0] if summary_rows else None
-    )
+    # Some Cloudflare zones/plans restrict httpRequestsAdaptiveGroups queries to
+    # a maximum one-day time range. Query each completed day independently and
+    # aggregate the 28-day snapshot locally. This also reduces adaptive sampling
+    # pressure compared with one large monthly query.
+    requests = 0
+    visits = 0
+    data_transfer_bytes = 0
+    sample_interval = 1.0
+    saw_zone = False
 
     daily_map: dict[str, dict[str, Any]] = defaultdict(
         lambda: {"requests": 0, "visits": 0, "data_transfer_bytes": 0, "sample_intervals": []}
     )
-    for row in hourly_rows:
-        if not isinstance(row, dict):
+
+    current_day = start_date
+    while current_day < end_exclusive:
+        next_day = current_day + timedelta(days=1)
+        payload = await _graphql(
+            api_token,
+            CLOUDFLARE_TRAFFIC_QUERY,
+            {
+                "zoneTag": connection.external_resource_id,
+                "start": _iso_utc(current_day),
+                "end": _iso_utc(next_day),
+            },
+        )
+
+        zone = _zone_from_payload(payload)
+        if zone is None:
+            current_day = next_day
             continue
-        dimensions = row.get("dimensions") if isinstance(row.get("dimensions"), dict) else {}
-        stamp = str(dimensions.get("datetimeHour") or "")
-        if len(stamp) < 10:
-            continue
-        day_key = stamp[:10]
-        row_requests, row_visits, row_bytes, row_sample_interval = _row_values(row)
-        bucket = daily_map[day_key]
-        bucket["requests"] += row_requests
-        bucket["visits"] += row_visits
-        bucket["data_transfer_bytes"] += row_bytes
-        bucket["sample_intervals"].append(row_sample_interval)
+
+        saw_zone = True
+        summary_rows = zone.get("summary", []) if isinstance(zone.get("summary"), list) else []
+        hourly_rows = zone.get("hourly", []) if isinstance(zone.get("hourly"), list) else []
+
+        day_requests = 0
+        day_visits = 0
+        day_bytes = 0
+        day_sample_interval = 1.0
+
+        if summary_rows:
+            day_requests, day_visits, day_bytes, day_sample_interval = _row_values(summary_rows[0])
+
+        for row in hourly_rows:
+            if not isinstance(row, dict):
+                continue
+            dimensions = row.get("dimensions") if isinstance(row.get("dimensions"), dict) else {}
+            stamp = str(dimensions.get("datetimeHour") or "")
+            if len(stamp) < 10:
+                continue
+            day_key = stamp[:10]
+            row_requests, row_visits, row_bytes, row_sample_interval = _row_values(row)
+            bucket = daily_map[day_key]
+            bucket["requests"] += row_requests
+            bucket["visits"] += row_visits
+            bucket["data_transfer_bytes"] += row_bytes
+            bucket["sample_intervals"].append(row_sample_interval)
+
+        # If Cloudflare did not return a summary row, use that day's hourly groups.
+        if not summary_rows:
+            bucket = daily_map.get(current_day.isoformat())
+            if bucket:
+                day_requests = int(bucket["requests"])
+                day_visits = int(bucket["visits"])
+                day_bytes = int(bucket["data_transfer_bytes"])
+                samples = bucket["sample_intervals"]
+                day_sample_interval = sum(samples) / len(samples) if samples else 1.0
+
+        requests += day_requests
+        visits += day_visits
+        data_transfer_bytes += day_bytes
+        sample_interval = max(sample_interval, day_sample_interval)
+        current_day = next_day
+
+    if not saw_zone:
+        raise CloudflareError("Cloudflare returned no analytics for the selected zone")
 
     daily: list[dict[str, Any]] = []
     for day_key in sorted(daily_map):
         bucket = daily_map[day_key]
-        samples = bucket.pop("sample_intervals")
+        samples = bucket["sample_intervals"]
         daily.append(
             {
                 "date": day_key,
@@ -231,13 +277,6 @@ async def fetch_cloudflare_snapshot(connection: Connection) -> dict[str, Any]:
                 "sample_interval": sum(samples) / len(samples) if samples else 1,
             }
         )
-
-    # If the summary group is absent, fall back to the sum of the hourly groups.
-    if not summary_rows and daily:
-        requests = sum(item["requests"] for item in daily)
-        visits = sum(item["visits"] for item in daily)
-        data_transfer_bytes = sum(item["data_transfer_bytes"] for item in daily)
-        sample_interval = max((item["sample_interval"] for item in daily), default=1)
 
     return {
         "period_start": start_date,
