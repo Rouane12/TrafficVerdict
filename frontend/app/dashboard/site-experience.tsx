@@ -59,7 +59,11 @@ export function SiteExperience({ site }: { site: Site }) {
         <div className="analysis-window-bar">
           <div>
             <span className="evidence-label">Analysis window</span>
-            <p className="muted tiny">Uses already-synced daily evidence and never invents unavailable history.</p>
+            <p className="muted tiny">
+              {analysisDays
+                ? "Daily evidence is filtered to this window. Page/query diagnostics stay out unless their stored breakdown matches the selected range."
+                : "Uses the common overlap across the synced sources and never invents unavailable history."}
+            </p>
           </div>
           <label className="analysis-window-control">
             <span className="sr-only">Choose analysis window</span>
