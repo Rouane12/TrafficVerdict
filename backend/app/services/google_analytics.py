@@ -231,6 +231,28 @@ def _format_ga_date(value: str) -> str:
     return value
 
 
+def _complete_daily_rows(start_date: date, end_date: date, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_date = {str(row.get("date")): row for row in rows if row.get("date")}
+    completed: list[dict[str, Any]] = []
+    cursor = start_date
+    while cursor <= end_date:
+        key = cursor.isoformat()
+        completed.append(
+            by_date.get(
+                key,
+                {
+                    "date": key,
+                    "activeUsers": 0,
+                    "sessions": 0,
+                    "screenPageViews": 0,
+                    "engagedSessions": 0,
+                },
+            )
+        )
+        cursor += timedelta(days=1)
+    return completed
+
+
 async def fetch_ga4_snapshot(connection: Connection, db: Session) -> dict[str, Any]:
     if not connection.external_resource_id:
         raise GoogleAnalyticsError("Select a Google Analytics property before syncing")
@@ -263,6 +285,7 @@ async def fetch_ga4_snapshot(connection: Connection, db: Session) -> dict[str, A
             "dimensions": [{"name": "date"}],
             "metrics": metrics,
             "orderBys": [{"dimension": {"dimensionName": "date"}}],
+            "keepEmptyRows": True,
             "limit": "100",
         },
     )
@@ -280,6 +303,7 @@ async def fetch_ga4_snapshot(connection: Connection, db: Session) -> dict[str, A
             except (TypeError, ValueError):
                 daily_item[name] = 0
         daily.append(daily_item)
+    daily = _complete_daily_rows(start_date, end_date, daily)
 
     return {
         "period_start": start_date,
@@ -290,7 +314,7 @@ async def fetch_ga4_snapshot(connection: Connection, db: Session) -> dict[str, A
             "views": normalized.get("screenPageViews", 0),
             "engaged_sessions": normalized.get("engagedSessions", 0),
         },
-        "breakdowns": {"daily": daily},
+        "breakdowns": {"daily": daily, "daily_complete": True},
     }
 
 
