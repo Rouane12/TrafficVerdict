@@ -7,6 +7,7 @@ import { api } from "../../lib/api";
 import { CloudflarePanel } from "./cloudflare-panel";
 import { GoogleAnalyticsPanel } from "./google-analytics-panel";
 import { NormalizationPanel } from "./normalization-panel";
+import { ReconciliationPanel } from "./reconciliation-panel";
 import { SearchConsolePanel } from "./search-console-panel";
 
 type User = { id: string; email: string; display_name: string | null };
@@ -205,7 +206,7 @@ export default function DashboardPage() {
                       <h2>{site.name}</h2>
                       <p className="muted">{site.domain} · {site.timezone}</p>
                     </div>
-                    <span className="status">Milestone 5</span>
+                    <span className="status">Milestone 6</span>
                   </div>
                   <div className="provider-grid">
                     <GoogleAnalyticsPanel siteId={site.id} />
@@ -213,6 +214,7 @@ export default function DashboardPage() {
                     <CloudflarePanel siteId={site.id} />
                   </div>
                   <NormalizationPanel siteId={site.id} />
+                  <ReconciliationPanel siteId={site.id} />
                 </article>
               ))}
             </div>
