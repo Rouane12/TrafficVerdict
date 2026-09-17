@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { api } from "../../lib/api";
+import { CloudflarePanel } from "./cloudflare-panel";
 import { GoogleAnalyticsPanel } from "./google-analytics-panel";
 import { SearchConsolePanel } from "./search-console-panel";
 
@@ -203,15 +204,12 @@ export default function DashboardPage() {
                       <h2>{site.name}</h2>
                       <p className="muted">{site.domain} · {site.timezone}</p>
                     </div>
-                    <span className="status">Milestone 3</span>
+                    <span className="status">Milestone 4</span>
                   </div>
                   <div className="provider-grid">
                     <GoogleAnalyticsPanel siteId={site.id} />
                     <SearchConsolePanel siteId={site.id} />
-                    <div className="provider-row">
-                      <span>Cloudflare</span>
-                      <span className="muted">Not connected</span>
-                    </div>
+                    <CloudflarePanel siteId={site.id} />
                   </div>
                 </article>
               ))}
