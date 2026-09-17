@@ -195,7 +195,7 @@ export function TrackingHealthSummary({ siteId }: { siteId: string }) {
 
       {findings.length > 0 ? (
         <div className="health-notes">
-          <span className="evidence-label">Health notes</span>
+          <span className="evidence-label">Coverage and measurement notes</span>
           {findings.map((finding) => (
             <div className="health-note" key={finding.rule_id}>
               <span className={`finding-dot severity-${finding.severity}`} aria-hidden="true" />
@@ -209,8 +209,8 @@ export function TrackingHealthSummary({ siteId }: { siteId: string }) {
         </div>
       ) : (
         <div className="health-clear-state">
-          <strong>No source-health warnings detected.</strong>
-          <p className="muted small">TrafficVerdict found no stale-sync, missing-source, or coverage warnings that need action right now.</p>
+          <strong>No connection or freshness warnings detected.</strong>
+          <p className="muted small">TrafficVerdict found no stale-sync or missing-source warnings that need action right now.</p>
         </div>
       )}
 
