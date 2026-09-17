@@ -17,7 +17,7 @@ type Dimension = { key: string; label: string; comparison_mode: string; note: st
 type NormalizationResponse = {
   canonical_hostname: string;
   canonical_timezone: string;
-  canonical_window: { start: string; end: string; days: number } | null;
+  canonical_window: { start: string; end: string; days: number; requested_days?: number | null; available_days?: number } | null;
   sources: Record<string, SourceState>;
   dimensions: Dimension[];
   warnings: string[];
@@ -31,7 +31,7 @@ function freshnessLabel(source: SourceState) {
   return `Fresh · ${source.freshness.data_lag_days ?? 0}d lag`;
 }
 
-export function NormalizationPanel({ siteId }: { siteId: string }) {
+export function NormalizationPanel({ siteId, days = null }: { siteId: string; days?: number | null }) {
   const [data, setData] = useState<NormalizationResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -40,7 +40,8 @@ export function NormalizationPanel({ siteId }: { siteId: string }) {
     setBusy(true);
     setError("");
     try {
-      setData(await api<NormalizationResponse>(`/sites/${siteId}/normalization`));
+      const query = days ? `?days=${days}` : "";
+      setData(await api<NormalizationResponse>(`/sites/${siteId}/normalization${query}`));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to normalize source evidence");
     } finally {
@@ -50,7 +51,7 @@ export function NormalizationPanel({ siteId }: { siteId: string }) {
 
   useEffect(() => {
     void refresh();
-  }, [siteId]);
+  }, [siteId, days]);
 
   return (
     <section className="normalization-panel">
