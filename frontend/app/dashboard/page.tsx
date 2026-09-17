@@ -4,11 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { api } from "../../lib/api";
-import { CloudflarePanel } from "./cloudflare-panel";
-import { GoogleAnalyticsPanel } from "./google-analytics-panel";
-import { NormalizationPanel } from "./normalization-panel";
-import { ReconciliationPanel } from "./reconciliation-panel";
-import { SearchConsolePanel } from "./search-console-panel";
+import { SiteExperience } from "./site-experience";
 
 type User = { id: string; email: string; display_name: string | null };
 type Workspace = { id: string; name: string; slug: string };
@@ -111,7 +107,15 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <main className="shell dashboard"><p className="muted">Loading your workspace…</p></main>;
+    return (
+      <main className="shell dashboard">
+        <div className="dashboard-loading" role="status">
+          <span className="eyebrow">TrafficVerdict</span>
+          <h2>Loading your workspace…</h2>
+          <p className="muted">Restoring your sites and the latest evidence-backed verdicts.</p>
+        </div>
+      </main>
+    );
   }
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
@@ -126,10 +130,11 @@ export default function DashboardPage() {
         <button className="button ghost" type="button" onClick={logout}>Sign out</button>
       </header>
 
-      <section className="dashboard-header">
+      <section className="dashboard-header experience-dashboard-header">
         <div>
           <span className="eyebrow">Workspace</span>
           <h1 className="dashboard-title">{selectedWorkspace?.name ?? "Create your first workspace"}</h1>
+          {selectedWorkspace ? <p className="muted experience-subtitle">Start with the verdict. Drill into sources only when you need the evidence.</p> : null}
         </div>
         {workspaces.length > 1 ? (
           <select className="input workspace-select" value={selectedWorkspaceId} onChange={(event) => void changeWorkspace(event.target.value)}>
@@ -152,73 +157,59 @@ export default function DashboardPage() {
         </section>
       ) : (
         <>
-          <section className="panel onboarding-panel">
-            <span className="eyebrow">Site setup</span>
-            <h2>{sites.length === 0 ? "Add your first site" : "Add another site"}</h2>
-            <form className="site-form" onSubmit={createSite} autoComplete="off">
-              <input
-                className="input"
-                name="name"
-                placeholder="Neural Critic"
-                value={siteName}
-                onChange={(event) => setSiteName(event.target.value)}
-                maxLength={120}
-                autoComplete="off"
-                required
-              />
-              <input
-                className="input"
-                name="domain"
-                placeholder="example.com"
-                value={siteDomain}
-                onChange={(event) => setSiteDomain(event.target.value)}
-                maxLength={255}
-                autoComplete="off"
-                required
-              />
-              <input
-                className="input"
-                name="timezone"
-                placeholder="UTC"
-                value={siteTimezone}
-                onChange={(event) => setSiteTimezone(event.target.value)}
-                maxLength={64}
-                autoComplete="off"
-                required
-              />
-              <button className="button" type="submit">Add site</button>
-            </form>
-          </section>
-
-          <section className="section-block">
+          <section className="section-block experience-sites-section">
             <div className="section-heading">
               <div>
-                <span className="eyebrow">Sites</span>
+                <span className="eyebrow">Traffic today</span>
                 <h2>{sites.length ? "Your sites" : "No sites yet"}</h2>
               </div>
             </div>
 
             <div className="site-list">
-              {sites.map((site) => (
-                <article className="site-card" key={site.id}>
-                  <div className="site-card-heading">
-                    <div>
-                      <h2>{site.name}</h2>
-                      <p className="muted">{site.domain} · {site.timezone}</p>
-                    </div>
-                    <span className="status">Milestone 6</span>
-                  </div>
-                  <div className="provider-grid">
-                    <GoogleAnalyticsPanel siteId={site.id} />
-                    <SearchConsolePanel siteId={site.id} />
-                    <CloudflarePanel siteId={site.id} />
-                  </div>
-                  <NormalizationPanel siteId={site.id} />
-                  <ReconciliationPanel siteId={site.id} />
-                </article>
-              ))}
+              {sites.map((site) => <SiteExperience site={site} key={site.id} />)}
             </div>
           </section>
+
+          <details className="panel site-setup-disclosure" open={sites.length === 0}>
+            <summary>{sites.length === 0 ? "Add your first site" : "Add another site"}</summary>
+            <div className="site-setup-body">
+              <span className="eyebrow">Site setup</span>
+              <h2>{sites.length === 0 ? "Add your first site" : "Add another site"}</h2>
+              <form className="site-form" onSubmit={createSite} autoComplete="off">
+                <input
+                  className="input"
+                  name="name"
+                  placeholder="Neural Critic"
+                  value={siteName}
+                  onChange={(event) => setSiteName(event.target.value)}
+                  maxLength={120}
+                  autoComplete="off"
+                  required
+                />
+                <input
+                  className="input"
+                  name="domain"
+                  placeholder="example.com"
+                  value={siteDomain}
+                  onChange={(event) => setSiteDomain(event.target.value)}
+                  maxLength={255}
+                  autoComplete="off"
+                  required
+                />
+                <input
+                  className="input"
+                  name="timezone"
+                  placeholder="UTC"
+                  value={siteTimezone}
+                  onChange={(event) => setSiteTimezone(event.target.value)}
+                  maxLength={64}
+                  autoComplete="off"
+                  required
+                />
+                <button className="button" type="submit">Add site</button>
+              </form>
+            </div>
+          </details>
         </>
       )}
     </main>
