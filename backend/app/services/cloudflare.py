@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Any
 
@@ -123,16 +122,6 @@ query TrafficVerdictCloudflare($zoneTag: string, $start: Time, $end: Time) {
         avg { sampleInterval }
         sum { visits edgeResponseBytes }
       }
-      hourly: httpRequestsAdaptiveGroups(
-        limit: 1000
-        orderBy: [datetimeHour_ASC]
-        filter: {datetime_geq: $start, datetime_lt: $end, requestSource: "eyeball"}
-      ) {
-        count
-        avg { sampleInterval }
-        sum { visits edgeResponseBytes }
-        dimensions { datetimeHour }
-      }
     }
   }
 }
@@ -186,19 +175,16 @@ async def fetch_cloudflare_snapshot(connection: Connection) -> dict[str, Any]:
     start_date = end_exclusive - timedelta(days=28)
     end_date = end_exclusive - timedelta(days=1)
 
-    # Some Cloudflare zones/plans restrict httpRequestsAdaptiveGroups queries to
-    # a maximum one-day time range. Query each completed day independently and
-    # aggregate the 28-day snapshot locally. This also reduces adaptive sampling
-    # pressure compared with one large monthly query.
+    # Some zones/plans limit adaptive analytics to one day per query. Query each
+    # completed day separately, store that day's aggregate directly, and then sum
+    # those same daily rows. This keeps the headline and normalized evidence on
+    # one consistent data source instead of mixing daily hourly-groups with a
+    # different summary aggregate.
     requests = 0
     visits = 0
     data_transfer_bytes = 0
     sample_interval = 1.0
-    saw_zone = False
-
-    daily_map: dict[str, dict[str, Any]] = defaultdict(
-        lambda: {"requests": 0, "visits": 0, "data_transfer_bytes": 0, "sample_intervals": []}
-    )
+    daily: list[dict[str, Any]] = []
 
     current_day = start_date
     while current_day < end_exclusive:
@@ -215,68 +201,25 @@ async def fetch_cloudflare_snapshot(connection: Connection) -> dict[str, Any]:
 
         zone = _zone_from_payload(payload)
         if zone is None:
-            current_day = next_day
-            continue
+            raise CloudflareError(f"Cloudflare returned no zone analytics container for {current_day.isoformat()}")
 
-        saw_zone = True
         summary_rows = zone.get("summary", []) if isinstance(zone.get("summary"), list) else []
-        hourly_rows = zone.get("hourly", []) if isinstance(zone.get("hourly"), list) else []
+        day_requests, day_visits, day_bytes, day_sample_interval = _row_values(summary_rows[0] if summary_rows else None)
 
-        day_requests = 0
-        day_visits = 0
-        day_bytes = 0
-        day_sample_interval = 1.0
-
-        if summary_rows:
-            day_requests, day_visits, day_bytes, day_sample_interval = _row_values(summary_rows[0])
-
-        for row in hourly_rows:
-            if not isinstance(row, dict):
-                continue
-            dimensions = row.get("dimensions") if isinstance(row.get("dimensions"), dict) else {}
-            stamp = str(dimensions.get("datetimeHour") or "")
-            if len(stamp) < 10:
-                continue
-            day_key = stamp[:10]
-            row_requests, row_visits, row_bytes, row_sample_interval = _row_values(row)
-            bucket = daily_map[day_key]
-            bucket["requests"] += row_requests
-            bucket["visits"] += row_visits
-            bucket["data_transfer_bytes"] += row_bytes
-            bucket["sample_intervals"].append(row_sample_interval)
-
-        # If Cloudflare did not return a summary row, use that day's hourly groups.
-        if not summary_rows:
-            bucket = daily_map.get(current_day.isoformat())
-            if bucket:
-                day_requests = int(bucket["requests"])
-                day_visits = int(bucket["visits"])
-                day_bytes = int(bucket["data_transfer_bytes"])
-                samples = bucket["sample_intervals"]
-                day_sample_interval = sum(samples) / len(samples) if samples else 1.0
-
+        daily.append(
+            {
+                "date": current_day.isoformat(),
+                "requests": day_requests,
+                "visits": day_visits,
+                "data_transfer_bytes": day_bytes,
+                "sample_interval": day_sample_interval,
+            }
+        )
         requests += day_requests
         visits += day_visits
         data_transfer_bytes += day_bytes
         sample_interval = max(sample_interval, day_sample_interval)
         current_day = next_day
-
-    if not saw_zone:
-        raise CloudflareError("Cloudflare returned no analytics for the selected zone")
-
-    daily: list[dict[str, Any]] = []
-    for day_key in sorted(daily_map):
-        bucket = daily_map[day_key]
-        samples = bucket["sample_intervals"]
-        daily.append(
-            {
-                "date": day_key,
-                "requests": bucket["requests"],
-                "visits": bucket["visits"],
-                "data_transfer_bytes": bucket["data_transfer_bytes"],
-                "sample_interval": sum(samples) / len(samples) if samples else 1,
-            }
-        )
 
     return {
         "period_start": start_date,
@@ -287,5 +230,5 @@ async def fetch_cloudflare_snapshot(connection: Connection) -> dict[str, Any]:
             "data_transfer_bytes": data_transfer_bytes,
             "sample_interval": sample_interval,
         },
-        "breakdowns": {"daily": daily},
+        "breakdowns": {"daily": daily, "daily_complete": True},
     }
