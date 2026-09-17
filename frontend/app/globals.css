@@ -124,3 +124,38 @@ h1 { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 0.98; letter-spacing: -
   .freshness-strip, .dimension-row { grid-template-columns: 1fr; }
   .dimension-values { justify-content: flex-start; }
 }
+
+/* Milestone 7 — clarity-first product experience */
+.dashboard-loading { display: grid; gap: 10px; min-height: 45vh; place-content: center; text-align: center; }
+.dashboard-loading h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+.experience-dashboard-header { margin-bottom: 18px; }
+.experience-subtitle { margin-top: 10px; max-width: 620px; line-height: 1.55; }
+.experience-sites-section { margin-top: 22px; }
+.experience-card { padding: 0; overflow: hidden; }
+.experience-site-heading { padding: 22px 22px 18px; }
+.experience-site-heading h2 { margin-top: 6px; }
+.experience-tabs { display: flex; gap: 6px; padding: 0 18px 14px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: thin; }
+.experience-tab { flex: 0 0 auto; padding: 9px 12px; border: 1px solid transparent; border-radius: 999px; background: transparent; color: var(--muted); font-weight: 700; }
+.experience-tab:hover { color: var(--text); border-color: var(--border); }
+.experience-tab.active { background: var(--text); color: #0c1014; }
+.experience-view { padding: 0 22px 22px; }
+.experience-intro { display: grid; gap: 8px; padding: 22px 0 4px; max-width: 760px; }
+.experience-intro h3 { font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -0.025em; }
+.experience-intro p { line-height: 1.6; }
+.compact-intro h3 { font-size: 1.35rem; }
+.experience-view > .reconciliation-panel:first-of-type { margin-top: 14px; }
+.experience-provider-grid { margin-top: 16px; }
+.experience-empty-state { display: grid; gap: 6px; margin-top: 16px; padding: 18px; border: 1px dashed var(--border); border-radius: 12px; background: #0d1117; }
+.site-setup-disclosure { margin-top: 20px; overflow: hidden; }
+.site-setup-disclosure > summary { cursor: pointer; padding: 16px 20px; font-weight: 750; color: var(--muted); list-style-position: inside; }
+.site-setup-disclosure[open] > summary { border-bottom: 1px solid var(--border); color: var(--text); }
+.site-setup-body { padding: 20px; }
+.site-setup-body h2 { margin-top: 7px; }
+
+@media (max-width: 760px) {
+  .experience-site-heading { padding: 18px 18px 14px; }
+  .experience-tabs { padding-inline: 14px; }
+  .experience-view { padding-inline: 14px; }
+  .experience-intro { padding-top: 18px; }
+  .site-setup-body { padding: 16px; }
+}
