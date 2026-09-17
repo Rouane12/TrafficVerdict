@@ -30,6 +30,7 @@ type ReconciliationResponse = {
 
 type ReconciliationPanelProps = {
   siteId: string;
+  days?: number | null;
   variant?: "full" | "summary";
   onViewDetails?: () => void;
 };
@@ -54,7 +55,7 @@ function evidenceSummary(item: Record<string, unknown>) {
   return parts.join(" · ");
 }
 
-export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }: ReconciliationPanelProps) {
+export function ReconciliationPanel({ siteId, days = null, variant = "full", onViewDetails }: ReconciliationPanelProps) {
   const [data, setData] = useState<ReconciliationResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,7 +65,8 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
     setBusy(true);
     setError("");
     try {
-      setData(await api<ReconciliationResponse>(`/sites/${siteId}/reconciliation`));
+      const query = days ? `?days=${days}` : "";
+      setData(await api<ReconciliationResponse>(`/sites/${siteId}/reconciliation${query}`));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to reconcile analytics evidence");
     } finally {
@@ -74,7 +76,7 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
 
   useEffect(() => {
     void refresh();
-  }, [siteId]);
+  }, [siteId, days]);
 
   useEffect(() => {
     if (!selectedFinding) return;
