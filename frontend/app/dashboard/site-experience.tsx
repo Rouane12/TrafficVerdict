@@ -28,6 +28,7 @@ const TABS: { key: ExperienceTab; label: string }[] = [
 
 export function SiteExperience({ site }: { site: Site }) {
   const [tab, setTab] = useState<ExperienceTab>("overview");
+  const [analysisDays, setAnalysisDays] = useState<number | null>(null);
 
   return (
     <article className="site-card experience-card">
@@ -54,6 +55,30 @@ export function SiteExperience({ site }: { site: Site }) {
         ))}
       </nav>
 
+      {tab === "overview" || tab === "reconciliation" ? (
+        <div className="analysis-window-bar">
+          <div>
+            <span className="evidence-label">Analysis window</span>
+            <p className="muted tiny">Uses already-synced daily evidence and never invents unavailable history.</p>
+          </div>
+          <label className="analysis-window-control">
+            <span className="sr-only">Choose analysis window</span>
+            <select
+              className="input analysis-window-select"
+              value={analysisDays ?? "available"}
+              onChange={(event) =>
+                setAnalysisDays(event.target.value === "available" ? null : Number(event.target.value))
+              }
+            >
+              <option value="available">Available overlap</option>
+              <option value="7">Last 7 days</option>
+              <option value="14">Last 14 days</option>
+              <option value="28">Last 28 days</option>
+            </select>
+          </label>
+        </div>
+      ) : null}
+
       {tab === "overview" ? (
         <div className="experience-view">
           <section className="experience-intro">
@@ -65,6 +90,7 @@ export function SiteExperience({ site }: { site: Site }) {
           </section>
           <ReconciliationPanel
             siteId={site.id}
+            days={analysisDays}
             variant="summary"
             onViewDetails={() => setTab("reconciliation")}
           />
@@ -80,8 +106,8 @@ export function SiteExperience({ site }: { site: Site }) {
               Normalized context first, then the deterministic findings that explain meaningful gaps without pretending unlike metrics should match.
             </p>
           </section>
-          <NormalizationPanel siteId={site.id} />
-          <ReconciliationPanel siteId={site.id} />
+          <NormalizationPanel siteId={site.id} days={analysisDays} />
+          <ReconciliationPanel siteId={site.id} days={analysisDays} />
         </div>
       ) : null}
 
