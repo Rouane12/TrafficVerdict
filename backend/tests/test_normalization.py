@@ -4,7 +4,7 @@ from app.services.normalization import normalize_hostname, normalize_path, norma
 from tests.normalization_fixtures import AS_OF, cases
 
 
-def _normalize(case: dict) -> dict:
+def _normalize(case: dict, requested_days: int | None = None) -> dict:
     snapshots = case["snapshots"]
     states = {source: "connected" for source in ("google_analytics", "google_search_console", "cloudflare")}
     return normalize_site_evidence(
@@ -15,6 +15,7 @@ def _normalize(case: dict) -> dict:
         connection_states=states,
         last_synced_at={},
         as_of_date=AS_OF,
+        requested_days=requested_days,
     )
 
 
@@ -79,3 +80,28 @@ def test_timezone_mismatch_is_marked_without_rebinning_counts() -> None:
     assert gsc["date_alignment"]["mode"] == "date_label_only"
     assert cloudflare["date_alignment"]["mode"] == "date_label_only"
     assert any("day boundaries" in warning for warning in result["warnings"])
+
+
+def test_requested_window_uses_synced_daily_evidence_and_clamps_to_overlap() -> None:
+    result = _normalize(cases()["normal_site"], requested_days=7)
+    window = result["canonical_window"]
+
+    assert window["start"] == "2026-09-08"
+    assert window["end"] == "2026-09-14"
+    assert window["days"] == 7
+    assert window["requested_days"] == 7
+    assert window["available_days"] == 26
+
+    ga = result["sources"]["google_analytics"]
+    assert ga["canonical_metrics"]["sessions"] == 42
+    assert len(ga["normalized_breakdowns"]["daily"]) == 7
+
+    gsc = result["sources"]["google_search_console"]
+    assert "top_pages" not in gsc["normalized_breakdowns"]
+    assert "top_queries" not in gsc["normalized_breakdowns"]
+
+    clamped = _normalize(cases()["normal_site"], requested_days=28)
+    assert clamped["canonical_window"]["start"] == "2026-08-20"
+    assert clamped["canonical_window"]["end"] == "2026-09-14"
+    assert clamped["canonical_window"]["days"] == 26
+    assert clamped["canonical_window"]["requested_days"] == 28
