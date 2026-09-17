@@ -188,3 +188,148 @@ h1 { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 0.98; letter-spacing: -
   .experience-intro { padding-top: 18px; }
   .site-setup-body { padding: 16px; }
 }
+
+
+/* Milestone 7 — tracking health */
+.tracking-health-summary {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0d1117;
+}
+.tracking-health-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.tracking-health-heading h4 {
+  margin: 6px 0;
+  font-size: 1.2rem;
+}
+.tracking-health-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.tracking-health-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.tracking-health-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tracking-health-card-top p {
+  margin-top: 4px;
+}
+.health-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.health-healthy {
+  border-color: #315c4a;
+  color: var(--accent);
+}
+.health-warning {
+  border-color: #6d5830;
+  color: #f1c978;
+}
+.health-danger {
+  border-color: #7e3b3b;
+  color: var(--danger);
+}
+.health-neutral {
+  color: var(--muted);
+}
+.tracking-health-facts {
+  display: grid;
+  gap: 10px;
+}
+.tracking-health-facts > div {
+  display: grid;
+  gap: 3px;
+}
+.tracking-health-facts > div + div {
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+.tracking-health-facts span:not(.evidence-label) {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.tracking-health-error,
+.tracking-health-load-error {
+  padding: 0;
+}
+.health-notes {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+.health-note {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.health-note > div {
+  display: grid;
+  gap: 4px;
+}
+.health-clear-state {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px dashed #315c4a;
+  border-radius: 10px;
+  background: rgba(142, 231, 190, 0.035);
+}
+.health-controls-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-top: 22px;
+}
+.health-controls-heading p {
+  margin-top: 3px;
+}
+
+@media (max-width: 900px) {
+  .tracking-health-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .tracking-health-heading,
+  .tracking-health-card-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .health-note {
+    grid-template-columns: 10px minmax(0, 1fr);
+  }
+  .health-note > .status {
+    grid-column: 2;
+    width: fit-content;
+  }
+}
