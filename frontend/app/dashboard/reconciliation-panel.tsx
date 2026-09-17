@@ -201,7 +201,7 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
                 <span className="eyebrow">Evidence</span>
                 <h3 id="evidence-drawer-title">{selectedFinding.title}</h3>
               </div>
-              <button className="evidence-close" type="button" aria-label="Close evidence" onClick={() => setSelectedFinding(null)}>
+              <button className="evidence-close" type="button" aria-label="Close evidence" autoFocus onClick={() => setSelectedFinding(null)}>
                 ×
               </button>
             </div>
@@ -209,6 +209,11 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
             <div className="evidence-meta">
               <span className="status">{selectedFinding.confidence} confidence</span>
               <span className="status">{selectedFinding.severity}</span>
+              {data?.canonical_window?.start && data?.canonical_window?.end ? (
+                <span className="status">
+                  {data.canonical_window.start} → {data.canonical_window.end}
+                </span>
+              ) : null}
             </div>
 
             <section className="evidence-drawer-section">
@@ -242,6 +247,15 @@ export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }:
                 <span className="evidence-label">Rule version</span>
                 <span>{selectedFinding.rule_version}</span>
               </div>
+              {data?.canonical_window?.start && data?.canonical_window?.end ? (
+                <div>
+                  <span className="evidence-label">Analysis window</span>
+                  <span>
+                    {data.canonical_window.start} → {data.canonical_window.end}
+                    {data.canonical_window.days ? ` · ${data.canonical_window.days} days` : ""}
+                  </span>
+                </div>
+              ) : null}
               <div>
                 <span className="evidence-label">Generated</span>
                 <span>{new Date(selectedFinding.generated_at).toLocaleString()}</span>
