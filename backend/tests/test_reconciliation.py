@@ -7,7 +7,7 @@ from tests.normalization_fixtures import AS_OF, cases
 GENERATED_AT = "2026-09-17T18:00:00+00:00"
 
 
-def _normalized(case: dict) -> dict:
+def _normalized(case: dict, requested_days: int | None = None) -> dict:
     states = {source: "connected" for source in ("google_analytics", "google_search_console", "cloudflare")}
     return normalize_site_evidence(
         site_id="11111111-1111-1111-1111-111111111111",
@@ -17,11 +17,15 @@ def _normalized(case: dict) -> dict:
         connection_states=states,
         last_synced_at={},
         as_of_date=AS_OF,
+        requested_days=requested_days,
     )
 
 
-def _reconcile(case_name: str) -> dict:
-    return reconcile_normalized_evidence(_normalized(cases()[case_name]), generated_at=GENERATED_AT)
+def _reconcile(case_name: str, requested_days: int | None = None) -> dict:
+    return reconcile_normalized_evidence(
+        _normalized(cases()[case_name], requested_days=requested_days),
+        generated_at=GENERATED_AT,
+    )
 
 
 def _finding_types(result: dict) -> set[str]:
@@ -102,3 +106,11 @@ def test_timezone_mismatch_becomes_evidence_backed_caveat() -> None:
     finding = next(item for item in result["findings"] if item["rule_id"] == "scope.timezone_boundary_mismatch")
     assert finding["confidence"] == "high"
     assert len(finding["source_evidence"]) >= 2
+
+
+def test_short_selected_window_does_not_reuse_full_snapshot_page_breakdowns() -> None:
+    result = _reconcile("partial_path_tracking", requested_days=7)
+
+    assert result["canonical_window"]["days"] == 7
+    assert not any(item["rule_id"] == "coverage.path_evidence_incomplete" for item in result["findings"])
+    assert any(item["rule_id"] == "scope.distinct_measurement_entities" for item in result["findings"])
