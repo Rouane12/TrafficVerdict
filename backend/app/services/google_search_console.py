@@ -246,6 +246,28 @@ def _breakdown_rows(payload: dict[str, Any], key_name: str, *, limit: int = 25) 
     return result
 
 
+def _complete_daily_rows(start_date: date, end_date: date, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_date = {str(row.get("date")): row for row in rows if row.get("date")}
+    completed: list[dict[str, Any]] = []
+    cursor = start_date
+    while cursor <= end_date:
+        key = cursor.isoformat()
+        completed.append(
+            by_date.get(
+                key,
+                {
+                    "date": key,
+                    "clicks": 0,
+                    "impressions": 0,
+                    "ctr": 0.0,
+                    "position": 0.0,
+                },
+            )
+        )
+        cursor += timedelta(days=1)
+    return completed
+
+
 async def fetch_search_console_snapshot(connection: Connection, db: Session) -> dict[str, Any]:
     if not connection.external_resource_id:
         raise SearchConsoleError("Select a Search Console property before syncing")
@@ -313,7 +335,7 @@ async def fetch_search_console_snapshot(connection: Connection, db: Session) -> 
     )
 
     daily = _breakdown_rows(daily_payload, "date", limit=1000)
-    daily.sort(key=lambda item: item["date"])
+    daily = _complete_daily_rows(start_date, end_date, daily)
 
     return {
         "period_start": start_date,
@@ -326,6 +348,7 @@ async def fetch_search_console_snapshot(connection: Connection, db: Session) -> 
         },
         "breakdowns": {
             "daily": daily,
+            "daily_complete": True,
             "top_queries": _breakdown_rows(query_payload, "query"),
             "top_pages": _breakdown_rows(page_payload, "page"),
         },
