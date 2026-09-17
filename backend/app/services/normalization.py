@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -182,6 +182,19 @@ def _canonical_window(snapshot_map: dict[str, dict[str, Any] | None]) -> tuple[d
     return (start, end) if start <= end else None
 
 
+def _requested_window(
+    available_window: tuple[date, date] | None,
+    requested_days: int | None,
+) -> tuple[date, date] | None:
+    if available_window is None or requested_days is None:
+        return available_window
+
+    days = max(int(requested_days), 1)
+    available_start, available_end = available_window
+    requested_start = available_end - timedelta(days=days - 1)
+    return max(available_start, requested_start), available_end
+
+
 def _rows_in_window(daily: list[dict[str, Any]], window: tuple[date, date] | None) -> list[dict[str, Any]]:
     if window is None:
         return []
@@ -307,18 +320,24 @@ def normalize_site_evidence(
     connection_states: dict[str, str] | None = None,
     last_synced_at: dict[str, str | None] | None = None,
     as_of_date: date,
+    requested_days: int | None = None,
 ) -> dict[str, Any]:
     canonical_timezone, timezone_valid = _validated_timezone(site_timezone)
     hostname = normalize_hostname(site_domain)
     connection_states = connection_states or {}
     last_synced_at = last_synced_at or {}
-    window = _canonical_window(snapshots)
+    available_window = _canonical_window(snapshots)
+    window = _requested_window(available_window, requested_days)
     warnings: list[str] = []
 
     if not timezone_valid:
         warnings.append(f"Site timezone '{site_timezone}' is invalid; normalization fell back to UTC.")
-    if window is None and any(snapshots.get(source) for source in SOURCES):
+    if available_window is None and any(snapshots.get(source) for source in SOURCES):
         warnings.append("Available source snapshots do not share an overlapping date window.")
+    if requested_days is not None and available_window is not None and window != available_window:
+        warnings.append(
+            "The selected date range is calculated from synced daily series. Provider aggregate breakdowns such as Search Console top pages remain scoped to the full synced snapshot and are excluded from date-specific coverage diagnostics."
+        )
 
     source_results: dict[str, dict[str, Any]] = {}
     for source in SOURCES:
@@ -367,6 +386,13 @@ def normalize_site_evidence(
             snapshot.get("breakdowns") if isinstance(snapshot.get("breakdowns"), dict) else {},
             hostname,
         )
+        normalized_breakdowns["daily"] = _rows_in_window(
+            normalized_breakdowns.get("daily", []),
+            window,
+        )
+        if requested_days is not None and available_window is not None and window != available_window:
+            normalized_breakdowns.pop("top_pages", None)
+            normalized_breakdowns.pop("top_queries", None)
         lag_days = max((as_of_date - native_end).days, 0) if native_end else None
         delayed = lag_days is not None and lag_days > int(meta["expected_lag_days"])
         if connection_state != "connected":
@@ -383,7 +409,11 @@ def normalize_site_evidence(
         if delayed:
             warnings.append(f"{meta['label']} data is {lag_days} days behind the normalization date.")
 
-        missing = _missing_dates(native_start, native_end, daily) if native_start and native_end and daily else []
+        missing = (
+            _missing_dates(window[0], window[1], normalized_breakdowns["daily"])
+            if window and normalized_breakdowns["daily"]
+            else []
+        )
         source_results[source] = {
             "source": source,
             "label": meta["label"],
@@ -411,11 +441,22 @@ def normalize_site_evidence(
 
     canonical_window = None
     if window:
+        available_days = (
+            (available_window[1] - available_window[0]).days + 1
+            if available_window
+            else (window[1] - window[0]).days + 1
+        )
         canonical_window = {
             "start": window[0].isoformat(),
             "end": window[1].isoformat(),
             "days": (window[1] - window[0]).days + 1,
-            "rule": "intersection_of_available_source_periods",
+            "rule": (
+                "requested_last_n_days_within_available_overlap"
+                if requested_days is not None
+                else "intersection_of_available_source_periods"
+            ),
+            "requested_days": requested_days,
+            "available_days": available_days,
         }
 
     return {
