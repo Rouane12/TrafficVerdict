@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -44,6 +44,7 @@ def _snapshot_dict(snapshot: MetricSnapshot) -> dict:
 @router.get("/sites/{site_id}/normalization", response_model=NormalizationResponse)
 def normalization_status(
     site_id: UUID,
+    days: int | None = Query(default=None, ge=1, le=90),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> NormalizationResponse:
@@ -74,5 +75,6 @@ def normalization_status(
             for source in SOURCES
         },
         as_of_date=datetime.now(timezone.utc).date(),
+        requested_days=days,
     )
     return NormalizationResponse.model_validate(result)
