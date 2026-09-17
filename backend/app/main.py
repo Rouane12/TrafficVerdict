@@ -6,6 +6,7 @@ from app.api.routes.cloudflare import router as cloudflare_router
 from app.api.routes.google_analytics import router as google_analytics_router
 from app.api.routes.google_search_console import router as google_search_console_router
 from app.api.routes.health import router as health_router
+from app.api.routes.normalization import router as normalization_router
 from app.api.routes.sites import router as sites_router
 from app.api.routes.workspaces import router as workspaces_router
 from app.core.config import settings
@@ -27,6 +28,7 @@ app.include_router(sites_router, prefix="/api")
 app.include_router(google_analytics_router, prefix="/api")
 app.include_router(google_search_console_router, prefix="/api")
 app.include_router(cloudflare_router, prefix="/api")
+app.include_router(normalization_router, prefix="/api")
 
 
 @app.get("/")
