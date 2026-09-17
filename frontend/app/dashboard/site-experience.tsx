@@ -56,13 +56,17 @@ export function SiteExperience({ site }: { site: Site }) {
       {tab === "overview" ? (
         <div className="experience-view">
           <section className="experience-intro">
-            <span className="eyebrow">Today</span>
+            <span className="eyebrow">Current verdict</span>
             <h3>What should I know about my traffic?</h3>
             <p className="muted">
-              TrafficVerdict turns your connected analytics into a short, evidence-backed explanation before showing you the underlying detail.
+              Start with the conclusion. Open Reconciliation only when you want the detailed evidence and next checks.
             </p>
           </section>
-          <ReconciliationPanel siteId={site.id} />
+          <ReconciliationPanel
+            siteId={site.id}
+            variant="summary"
+            onViewDetails={() => setTab("reconciliation")}
+          />
         </div>
       ) : null}
 
@@ -108,7 +112,7 @@ export function SiteExperience({ site }: { site: Site }) {
           </section>
           <div className="experience-empty-state">
             <strong>Current state is available</strong>
-            <p className="muted small">Use Overview for today’s verdict. This view will gain a real timeline once historical baselines exist.</p>
+            <p className="muted small">Use Overview for the current verdict. This view will gain a real timeline once historical baselines exist.</p>
           </div>
         </div>
       ) : null}
