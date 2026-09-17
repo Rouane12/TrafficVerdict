@@ -28,6 +28,12 @@ type ReconciliationResponse = {
   generated_at: string;
 };
 
+type ReconciliationPanelProps = {
+  siteId: string;
+  variant?: "full" | "summary";
+  onViewDetails?: () => void;
+};
+
 function headline(state: string) {
   if (state === "attention_required") return "Attention required";
   if (state === "explainable_gaps_with_warnings") return "Explainable gaps — with warnings";
@@ -49,7 +55,7 @@ function evidenceSummary(item: Record<string, unknown>) {
   return parts.join(" · ");
 }
 
-export function ReconciliationPanel({ siteId }: { siteId: string }) {
+export function ReconciliationPanel({ siteId, variant = "full", onViewDetails }: ReconciliationPanelProps) {
   const [data, setData] = useState<ReconciliationResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -69,6 +75,54 @@ export function ReconciliationPanel({ siteId }: { siteId: string }) {
   useEffect(() => {
     void refresh();
   }, [siteId]);
+
+  if (variant === "summary") {
+    return (
+      <section className="reconciliation-panel reconciliation-summary-panel">
+        <div className="reconciliation-heading">
+          <div>
+            <span className="eyebrow">TrafficVerdict</span>
+            <h3>{data ? headline(data.overall_state) : "Building your verdict…"}</h3>
+            <p className="muted small">
+              {data?.canonical_window?.start && data?.canonical_window?.end
+                ? `${data.canonical_window.start} → ${data.canonical_window.end}`
+                : "Deterministic reconciliation from normalized evidence."}
+            </p>
+          </div>
+          <button className="button compact" type="button" disabled={busy} onClick={() => void refresh()}>
+            {busy ? "Reconciling…" : "Run verdict"}
+          </button>
+        </div>
+
+        {data ? (
+          <div className="verdict-summary">
+            <div className="verdict-summary-count">
+              <strong>{data.finding_count}</strong>
+              <span className="muted small">current finding{data.finding_count === 1 ? "" : "s"}</span>
+            </div>
+            <div className="verdict-summary-list">
+              {data.findings.slice(0, 3).map((finding) => (
+                <div className="verdict-summary-item" key={`${finding.rule_id}-${finding.title}`}>
+                  <span className={`finding-dot severity-${finding.severity}`} aria-hidden="true" />
+                  <div>
+                    <strong>{finding.title}</strong>
+                    <span className="muted tiny">{finding.confidence} confidence</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {onViewDetails ? (
+              <button className="button ghost compact" type="button" onClick={onViewDetails}>
+                See reconciliation
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {error ? <p className="provider-error reconciliation-summary-error">{error}</p> : null}
+      </section>
+    );
+  }
 
   return (
     <section className="reconciliation-panel">
