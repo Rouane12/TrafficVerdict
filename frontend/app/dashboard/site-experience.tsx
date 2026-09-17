@@ -7,6 +7,7 @@ import { GoogleAnalyticsPanel } from "./google-analytics-panel";
 import { NormalizationPanel } from "./normalization-panel";
 import { ReconciliationPanel } from "./reconciliation-panel";
 import { SearchConsolePanel } from "./search-console-panel";
+import { TrackingHealthSummary } from "./tracking-health-summary";
 
 type Site = {
   id: string;
@@ -88,11 +89,18 @@ export function SiteExperience({ site }: { site: Site }) {
         <div className="experience-view">
           <section className="experience-intro compact-intro">
             <span className="eyebrow">Tracking health</span>
-            <h3>Connections and source data.</h3>
+            <h3>Is my measurement setup healthy?</h3>
             <p className="muted">
-              Sync, reconnect, or inspect the source metrics TrafficVerdict uses as evidence.
+              Start with connection, freshness, and coverage health. Use the source controls below only when you need to sync, reconnect, or inspect raw metrics.
             </p>
           </section>
+          <TrackingHealthSummary siteId={site.id} />
+          <div className="health-controls-heading">
+            <div>
+              <span className="evidence-label">Source controls</span>
+              <p className="muted small">Manual sync and connection management.</p>
+            </div>
+          </div>
           <div className="provider-grid experience-provider-grid">
             <GoogleAnalyticsPanel siteId={site.id} />
             <SearchConsolePanel siteId={site.id} />
