@@ -92,6 +92,14 @@ The worker uses PostgreSQL as a durable queue, checks connected sources on the c
 python -m app.sync_worker --once
 ```
 
+To prove the end-to-end worker path during local development without waiting for the normal cadence:
+
+```bash
+python -m app.sync_worker --once --force
+```
+
+The `--force` flag is rejected outside development/local/test environments. It queues a one-time probe for each ready connection while preserving the normal retry and persistence path.
+
 In VS Code you can also run the task **TrafficVerdict: Start Sync Worker**.
 
 ## Run the frontend
