@@ -72,7 +72,18 @@ export function NormalizationPanel({ siteId, days = null }: { siteId: string; da
         </button>
       </div>
 
+      {!data && !error ? (
+        <div className="state-card state-loading" role="status" aria-live="polite">
+          <span className="state-pulse" aria-hidden="true" />
+          <div>
+            <strong>Preparing comparable evidence…</strong>
+            <p className="muted small">Aligning the selected date window, freshness, and source semantics.</p>
+          </div>
+        </div>
+      ) : null}
+
       {data ? (
+        data.canonical_window ? (
         <>
           <div className="freshness-strip">
             {Object.entries(data.sources).map(([key, source]) => (
@@ -113,9 +124,26 @@ export function NormalizationPanel({ siteId, days = null }: { siteId: string; da
             </details>
           ) : null}
         </>
+        ) : (
+          <div className="state-card state-empty">
+            <div>
+              <strong>No shared analysis window yet.</strong>
+              <p className="muted small">Sync at least two connected sources with overlapping dates, then refresh the evidence.</p>
+            </div>
+            <button className="button ghost compact" type="button" onClick={() => void refresh()}>Refresh evidence</button>
+          </div>
+        )
       ) : null}
 
-      {error ? <p className="provider-error normalization-error">{error}</p> : null}
+      {error ? (
+        <div className="state-card state-error normalization-error" role="alert">
+          <div>
+            <strong>Normalized evidence couldn’t load.</strong>
+            <p className="muted small">{error}</p>
+          </div>
+          <button className="button ghost compact" type="button" onClick={() => void refresh()}>Try again</button>
+        </div>
+      ) : null}
     </section>
   );
 }
