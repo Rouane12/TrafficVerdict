@@ -101,6 +101,23 @@
       }
     },
     {
+      "label": "TrafficVerdict: Start Sync Worker",
+      "type": "process",
+      "command": "${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "app.sync_worker"],
+      "options": {
+        "cwd": "${workspaceFolder}\\backend"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "trafficverdict-dev",
+        "clear": true
+      }
+    },
+    {
       "label": "TrafficVerdict: Backend Tests",
       "type": "process",
       "command": "${workspaceFolder}\\backend\\.venv\\Scripts\\python.exe",
