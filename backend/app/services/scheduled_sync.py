@@ -190,13 +190,15 @@ async def run_sync_job(
         db.rollback()
 
         job = db.get(SyncJob, job_id)
+        if job is None:
+            raise
         connection = db.scalar(
             select(Connection).where(
                 Connection.site_id == job.site_id,
                 Connection.provider == job.provider,
             )
         )
-        if job is None or connection is None:
+        if connection is None:
             raise
 
         connection.last_error = message
