@@ -26,6 +26,10 @@ async def run_cycle(*, force: bool = False) -> dict[str, int]:
             "recovered": recovered,
             "queued": len(queued),
             "processed": len(processed),
+            "succeeded": sum(job.status == "succeeded" for job in processed),
+            "retrying": sum(job.status == "queued" for job in processed),
+            "failed": sum(job.status == "failed" for job in processed),
+            "skipped": sum(job.status == "skipped" for job in processed),
         }
 
 
@@ -37,6 +41,10 @@ async def worker_loop(*, once: bool, force: bool = False) -> None:
             f" recovered={stats['recovered']}"
             f" queued={stats['queued']}"
             f" processed={stats['processed']}"
+            f" succeeded={stats['succeeded']}"
+            f" retrying={stats['retrying']}"
+            f" failed={stats['failed']}"
+            f" skipped={stats['skipped']}"
             f" force={'yes' if force else 'no'}"
         )
         if once:
