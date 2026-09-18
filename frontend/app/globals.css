@@ -621,3 +621,37 @@ h1 { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 0.98; letter-spacing: -
     display: none;
   }
 }
+
+
+/* Milestone 8 — daily summary */
+.daily-summary {
+  display: grid;
+  gap: 8px;
+}
+.daily-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.daily-summary-grid > div {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.change-text {
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+.change-text.change-up { color: var(--accent); }
+.change-text.change-down { color: #f1c978; }
+.change-text.change-stable,
+.change-text.change-unknown { color: var(--muted); }
+
+@media (max-width: 760px) {
+  .daily-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
