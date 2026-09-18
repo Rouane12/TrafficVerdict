@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
@@ -20,3 +22,8 @@ class UserResponse(BaseModel):
     id: UUID
     email: EmailStr
     display_name: str | None
+
+
+class DeleteAccountRequest(BaseModel):
+    current_password: str = Field(min_length=8, max_length=128)
+    confirmation: Literal["DELETE"]
