@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     google_search_console_scope: str = "https://www.googleapis.com/auth/webmasters.readonly"
     credential_encryption_secret: str = "trafficverdict-local-credential-key-change-before-production"
 
+    scheduled_sync_interval_hours: int = 24
+    sync_worker_poll_seconds: int = 60
+    sync_worker_batch_size: int = 10
+    sync_job_max_attempts: int = 3
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
