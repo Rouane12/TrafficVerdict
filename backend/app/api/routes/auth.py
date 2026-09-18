@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
 from app.core.config import settings
 from app.core.security import create_session_token, hash_password, verify_password
 from app.db.database import get_db
+from app.models.connection import Connection
+from app.models.metric_snapshot import MetricSnapshot
+from app.models.site import Site
+from app.models.sync_job import SyncJob
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, UserResponse
+from app.models.workspace import Workspace
+from app.models.workspace_member import WorkspaceMember
+from app.schemas.auth import DeleteAccountRequest, LoginRequest, RegisterRequest, UserResponse
+from app.services.google_analytics import revoke_connection_tokens
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -68,3 +75,196 @@ def logout(response: Response) -> None:
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+
+@router.get("/export")
+def export_account_data(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    memberships = list(
+        db.scalars(
+            select(WorkspaceMember)
+            .where(WorkspaceMember.user_id == current_user.id)
+            .order_by(WorkspaceMember.created_at.asc())
+        ).all()
+    )
+
+    exported_workspaces: list[dict] = []
+    for membership in memberships:
+        workspace = db.get(Workspace, membership.workspace_id)
+        if workspace is None:
+            continue
+
+        sites = list(
+            db.scalars(
+                select(Site)
+                .where(Site.workspace_id == workspace.id)
+                .order_by(Site.created_at.asc())
+            ).all()
+        )
+        exported_sites: list[dict] = []
+        for site in sites:
+            connections = list(
+                db.scalars(
+                    select(Connection)
+                    .where(Connection.site_id == site.id)
+                    .order_by(Connection.provider.asc())
+                ).all()
+            )
+            snapshots = list(
+                db.scalars(
+                    select(MetricSnapshot)
+                    .where(MetricSnapshot.site_id == site.id)
+                    .order_by(MetricSnapshot.created_at.asc())
+                ).all()
+            )
+            jobs = list(
+                db.scalars(
+                    select(SyncJob)
+                    .where(SyncJob.site_id == site.id)
+                    .order_by(SyncJob.created_at.asc())
+                ).all()
+            )
+
+            exported_sites.append(
+                {
+                    "id": site.id,
+                    "name": site.name,
+                    "domain": site.domain,
+                    "timezone": site.timezone,
+                    "created_at": site.created_at,
+                    "connections": [
+                        {
+                            "provider": connection.provider,
+                            "status": connection.status,
+                            "external_resource_id": connection.external_resource_id,
+                            "provider_display_name": connection.provider_display_name,
+                            "provider_account_id": connection.provider_account_id,
+                            "granted_scopes": connection.granted_scopes,
+                            "last_synced_at": connection.last_synced_at,
+                            "last_error": connection.last_error,
+                            "created_at": connection.created_at,
+                        }
+                        for connection in connections
+                    ],
+                    "metric_snapshots": [
+                        {
+                            "source": snapshot.source,
+                            "period_start": snapshot.period_start,
+                            "period_end": snapshot.period_end,
+                            "metrics": snapshot.metrics,
+                            "breakdowns": snapshot.breakdowns,
+                            "created_at": snapshot.created_at,
+                        }
+                        for snapshot in snapshots
+                    ],
+                    "sync_jobs": [
+                        {
+                            "provider": job.provider,
+                            "job_type": job.job_type,
+                            "status": job.status,
+                            "scheduled_for": job.scheduled_for,
+                            "attempt_count": job.attempt_count,
+                            "max_attempts": job.max_attempts,
+                            "started_at": job.started_at,
+                            "finished_at": job.finished_at,
+                            "last_error": job.last_error,
+                            "created_at": job.created_at,
+                        }
+                        for job in jobs
+                    ],
+                }
+            )
+
+        exported_workspaces.append(
+            {
+                "id": workspace.id,
+                "name": workspace.name,
+                "slug": workspace.slug,
+                "role": membership.role,
+                "created_at": workspace.created_at,
+                "sites": exported_sites,
+            }
+        )
+
+    return {
+        "account": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "display_name": current_user.display_name,
+            "created_at": current_user.created_at,
+        },
+        "workspaces": exported_workspaces,
+    }
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    payload: DeleteAccountRequest,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Current password is incorrect")
+
+    memberships = list(
+        db.scalars(select(WorkspaceMember).where(WorkspaceMember.user_id == current_user.id)).all()
+    )
+    owned_workspace_ids = [
+        membership.workspace_id for membership in memberships if membership.role == "owner"
+    ]
+
+    owned_workspaces: list[Workspace] = []
+    for workspace_id in owned_workspace_ids:
+        other_members = db.scalar(
+            select(func.count())
+            .select_from(WorkspaceMember)
+            .where(
+                WorkspaceMember.workspace_id == workspace_id,
+                WorkspaceMember.user_id != current_user.id,
+            )
+        )
+        if other_members:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This account owns a workspace with other members. Transfer ownership before deleting the account.",
+            )
+        workspace = db.get(Workspace, workspace_id)
+        if workspace is not None:
+            owned_workspaces.append(workspace)
+
+    if owned_workspace_ids:
+        site_ids = list(
+            db.scalars(select(Site.id).where(Site.workspace_id.in_(owned_workspace_ids))).all()
+        )
+        if site_ids:
+            google_connections = list(
+                db.scalars(
+                    select(Connection).where(
+                        Connection.site_id.in_(site_ids),
+                        Connection.provider.in_(("google_analytics", "google_search_console")),
+                    )
+                ).all()
+            )
+            for connection in google_connections:
+                try:
+                    await revoke_connection_tokens(connection)
+                except Exception:
+                    # Account deletion must still remove local credentials if remote
+                    # token revocation is temporarily unavailable.
+                    pass
+
+    for workspace in owned_workspaces:
+        db.delete(workspace)
+    db.delete(current_user)
+    db.commit()
+
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        path="/",
+        secure=settings.cookie_secure,
+        samesite="lax",
+    )
