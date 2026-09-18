@@ -442,13 +442,18 @@ h1 { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 0.98; letter-spacing: -
     align-self: flex-start;
   }
   .experience-tabs {
-    gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
     padding: 0 10px 12px;
-    scroll-padding-inline: 10px;
+    overflow-x: visible;
   }
   .experience-tab {
-    padding: 8px 10px;
-    font-size: 0.88rem;
+    min-width: 0;
+    padding: 8px 9px;
+    font-size: 0.84rem;
+    text-align: center;
+    white-space: normal;
   }
   .experience-view {
     padding: 0 10px 14px;
