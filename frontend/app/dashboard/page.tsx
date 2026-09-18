@@ -21,6 +21,10 @@ export default function DashboardPage() {
   const [siteTimezone, setSiteTimezone] = useState("UTC");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [accountError, setAccountError] = useState("");
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   async function loadSites(workspaceId: string) {
     const nextSites = await api<Site[]>(`/workspaces/${workspaceId}/sites`);
@@ -104,6 +108,52 @@ export default function DashboardPage() {
   async function logout() {
     await api<void>("/auth/logout", { method: "POST" });
     router.replace("/login");
+  }
+
+  async function downloadAccountData() {
+    setAccountBusy(true);
+    setAccountError("");
+    try {
+      const data = await api<Record<string, unknown>>("/auth/export");
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `trafficverdict-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (caught) {
+      setAccountError(caught instanceof Error ? caught.message : "Unable to export account data");
+    } finally {
+      setAccountBusy(false);
+    }
+  }
+
+  async function deleteAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (deleteConfirmation !== "DELETE") return;
+    if (!window.confirm("Permanently delete your TrafficVerdict account and owned site data? This cannot be undone.")) {
+      return;
+    }
+
+    setAccountBusy(true);
+    setAccountError("");
+    try {
+      await api<void>("/auth/account", {
+        method: "DELETE",
+        body: JSON.stringify({
+          current_password: deletePassword,
+          confirmation: deleteConfirmation,
+        }),
+      });
+      router.replace("/");
+    } catch (caught) {
+      setAccountError(caught instanceof Error ? caught.message : "Unable to delete account");
+    } finally {
+      setAccountBusy(false);
+    }
   }
 
   if (loading) {
@@ -212,6 +262,60 @@ export default function DashboardPage() {
           </details>
         </>
       )}
+
+      <details className="panel account-data-disclosure">
+        <summary>Account & data</summary>
+        <div className="account-data-body">
+          <div className="account-data-section">
+            <div>
+              <span className="eyebrow">Your data</span>
+              <h2>Export your TrafficVerdict data</h2>
+              <p className="muted small">
+                Download the account, site, connection metadata, synced metrics, and job history currently stored for your accessible workspaces. Provider credentials are never included.
+              </p>
+            </div>
+            <button className="button ghost" type="button" disabled={accountBusy} onClick={() => void downloadAccountData()}>
+              {accountBusy ? "Working…" : "Download data"}
+            </button>
+          </div>
+
+          <div className="account-danger-zone">
+            <span className="eyebrow">Danger zone</span>
+            <h2>Delete account</h2>
+            <p className="muted small">
+              This permanently deletes your account and workspaces you solely own, including their sites, connections, snapshots, and sync history.
+            </p>
+            <form className="account-delete-form" onSubmit={deleteAccount}>
+              <input
+                className="input"
+                type="password"
+                placeholder="Current password"
+                value={deletePassword}
+                onChange={(event) => setDeletePassword(event.target.value)}
+                minLength={8}
+                maxLength={128}
+                autoComplete="current-password"
+                required
+              />
+              <input
+                className="input"
+                type="text"
+                placeholder='Type DELETE'
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                pattern="DELETE"
+                autoComplete="off"
+                required
+              />
+              <button className="button danger-button" type="submit" disabled={accountBusy || deleteConfirmation !== "DELETE"}>
+                Permanently delete account
+              </button>
+            </form>
+          </div>
+
+          {accountError ? <p className="form-error">{accountError}</p> : null}
+        </div>
+      </details>
     </main>
   );
 }
