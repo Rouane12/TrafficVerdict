@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.connection import Connection
@@ -80,7 +81,12 @@ def enqueue_due_sync_jobs(
             max_attempts=max_attempts,
             idempotency_key=key,
         )
-        db.add(job)
+        try:
+            with db.begin_nested():
+                db.add(job)
+                db.flush()
+        except IntegrityError:
+            continue
         created.append(job)
 
     if created:
@@ -180,6 +186,19 @@ async def run_sync_job(
         return job
     except Exception as exc:
         message = str(exc) or exc.__class__.__name__
+        job_id = job.id
+        db.rollback()
+
+        job = db.get(SyncJob, job_id)
+        connection = db.scalar(
+            select(Connection).where(
+                Connection.site_id == job.site_id,
+                Connection.provider == job.provider,
+            )
+        )
+        if job is None or connection is None:
+            raise
+
         connection.last_error = message
 
         if job.attempt_count < job.max_attempts:
