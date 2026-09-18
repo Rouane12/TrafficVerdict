@@ -123,6 +123,23 @@ export function AnomaliesPanel({ siteId }: { siteId: string }) {
         </div>
       ) : null}
 
+      {data?.daily_comparisons.length ? (
+        <div className="daily-summary">
+          <span className="evidence-label">Latest day vs previous day</span>
+          <div className="daily-summary-grid">
+            {data.daily_comparisons.map((item) => (
+              <div key={item.source}>
+                <strong>{item.label}</strong>
+                <span className="muted tiny">
+                  {item.previous} → {item.current} {item.metric}
+                </span>
+                <span className={`change-text change-${item.direction}`}>{formatChange(item.change_percent)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {data ? (
         data.anomalies.length ? (
           <div className="anomaly-list">
