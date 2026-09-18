@@ -521,3 +521,103 @@ h1 { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 0.98; letter-spacing: -
     padding: 14px;
   }
 }
+
+
+/* Milestone 8 — change detection */
+.anomaly-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #0d1117;
+}
+.anomaly-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.anomaly-heading h4 {
+  margin: 6px 0;
+  font-size: 1.2rem;
+}
+.change-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.change-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.change-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.change-card-top p {
+  margin-top: 3px;
+}
+.change-pill {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.change-up { color: var(--accent); border-color: #315c4a; }
+.change-down { color: #f1c978; border-color: #6d5830; }
+.change-stable,
+.change-unknown { color: var(--muted); }
+.change-values {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+.change-values > div {
+  display: grid;
+  gap: 4px;
+}
+.change-values > div:last-child {
+  text-align: right;
+}
+.anomaly-list {
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .change-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .anomaly-panel {
+    padding: 14px;
+  }
+  .anomaly-heading,
+  .change-card-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .change-values {
+    grid-template-columns: 1fr;
+  }
+  .change-values > div:last-child {
+    text-align: left;
+  }
+  .change-values > span {
+    display: none;
+  }
+}
