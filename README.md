@@ -4,9 +4,9 @@ Understand why your website analytics disagree — reconcile GA4, Search Console
 
 ## Development status
 
-Milestones 1–7: **complete and locally validated**.
+Milestones 1–8: **complete and locally validated**.
 
-Milestone 8 — Scheduled Sync & Change Detection: **in progress**.
+TrafficVerdict v1 hardening: **in progress**. Billing is intentionally deferred; the initial launch strategy is free usage first, with monetization revisited after real traffic and repeat usage exist.
 
 Current foundation:
 
@@ -27,6 +27,11 @@ Current foundation:
 - durable database-backed scheduled sync jobs with retry/deduplication
 - separate scheduled sync worker process
 - deterministic daily and week-over-week change detection
+- account data export and destructive account deletion
+- production configuration safety checks
+- cross-tenant authorization regression coverage
+- baseline API/frontend security headers
+- GitHub Actions backend/frontend CI
 - `/api/health` smoke endpoint
 
 See `docs/GA4_SETUP.md` for the local Google Cloud/OAuth setup required to test Milestone 2.
@@ -116,3 +121,10 @@ The frontend will be available at `http://localhost:3000`.
 ## Product rule
 
 TrafficVerdict is not another generic analytics dashboard. Its purpose is to explain meaningful disagreement between analytics sources, surface tracking-health problems, and show the evidence behind every diagnosis.
+
+
+## V1 release status
+
+See `docs/V1_RELEASE_CHECKLIST.md` for the current code-complete checklist and the separate production-deployment tasks.
+
+Security, privacy, retention, export, and deletion behavior are documented in `docs/SECURITY_PRIVACY.md`.
