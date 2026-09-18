@@ -4,9 +4,9 @@ Understand why your website analytics disagree — reconcile GA4, Search Console
 
 ## Development status
 
-Milestone 1 — Application Foundation: **complete and locally validated**.
+Milestones 1–7: **complete and locally validated**.
 
-Milestone 2 — Google Analytics Integration: **in progress**.
+Milestone 8 — Scheduled Sync & Change Detection: **in progress**.
 
 Current foundation:
 
@@ -21,7 +21,12 @@ Current foundation:
 - GA4 account/property discovery
 - encrypted provider credentials
 - manual GA4 sync
-- normalized GA4 metric snapshots
+- normalized GA4 / Search Console / Cloudflare snapshots
+- deterministic normalization and reconciliation
+- clarity-first dashboard with evidence, tracking health, and selectable analysis windows
+- durable database-backed scheduled sync jobs with retry/deduplication
+- separate scheduled sync worker process
+- deterministic daily and week-over-week change detection
 - `/api/health` smoke endpoint
 
 See `docs/GA4_SETUP.md` for the local Google Cloud/OAuth setup required to test Milestone 2.
@@ -72,6 +77,22 @@ uvicorn app.main:app --reload
 ```
 
 The API will be available at `http://localhost:8000` and the health check at `http://localhost:8000/api/health`.
+
+## Run the scheduled sync worker
+
+From `backend/`, with the database and API configuration available:
+
+```bash
+python -m app.sync_worker
+```
+
+The worker uses PostgreSQL as a durable queue, checks connected sources on the configured cadence, retries transient failures with backoff, and prevents duplicate scheduled jobs for the same source/day. For one local scheduling cycle only:
+
+```bash
+python -m app.sync_worker --once
+```
+
+In VS Code you can also run the task **TrafficVerdict: Start Sync Worker**.
 
 ## Run the frontend
 
