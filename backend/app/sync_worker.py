@@ -4,12 +4,16 @@ import argparse
 import asyncio
 
 from app.core.config import settings
+from app.core.runtime_safety import validate_runtime_settings
 from app.db.database import SessionLocal
 from app.services.scheduled_sync import (
     enqueue_due_sync_jobs,
     process_due_sync_jobs,
     recover_stale_jobs,
 )
+
+
+validate_runtime_settings(settings)
 
 
 async def run_cycle(*, force: bool = False) -> dict[str, object]:
