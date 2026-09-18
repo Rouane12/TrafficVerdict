@@ -51,6 +51,7 @@ def enqueue_due_sync_jobs(
     now: datetime | None = None,
     interval_hours: int = 24,
     max_attempts: int = 3,
+    force: bool = False,
 ) -> list[SyncJob]:
     now = _aware(now) or _utcnow()
     connections = db.scalars(
@@ -63,10 +64,14 @@ def enqueue_due_sync_jobs(
 
     created: list[SyncJob] = []
     for connection in connections:
-        if not _is_due(connection, now, interval_hours):
+        if not force and not _is_due(connection, now, interval_hours):
             continue
 
-        key = _idempotency_key(connection.site_id, connection.provider, now)
+        key = (
+            f"forced_probe:{connection.site_id}:{connection.provider}:{now.isoformat(timespec='seconds')}"
+            if force
+            else _idempotency_key(connection.site_id, connection.provider, now)
+        )
         existing = db.scalar(select(SyncJob).where(SyncJob.idempotency_key == key))
         if existing is not None:
             continue
@@ -74,7 +79,7 @@ def enqueue_due_sync_jobs(
         job = SyncJob(
             site_id=connection.site_id,
             provider=connection.provider,
-            job_type="scheduled_sync",
+            job_type="forced_probe" if force else "scheduled_sync",
             status="queued",
             scheduled_for=now,
             attempt_count=0,
