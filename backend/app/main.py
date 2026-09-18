@@ -29,6 +29,23 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_headers(request, call_next):
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("origin")
+        if origin and origin.rstrip("/") != settings.frontend_origin.rstrip("/"):
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Cross-origin state-changing request rejected"},
+                headers={
+                    "X-Content-Type-Options": "nosniff",
+                    "X-Frame-Options": "DENY",
+                    "Referrer-Policy": "same-origin",
+                    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+                    "Cache-Control": "no-store",
+                },
+            )
+
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
