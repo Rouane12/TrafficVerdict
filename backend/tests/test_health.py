@@ -13,3 +13,13 @@ def test_health_check() -> None:
         "status": "ok",
         "service": "trafficverdict-api",
     }
+
+
+def test_api_security_headers() -> None:
+    response = client.get("/api/health")
+
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "same-origin"
+    assert response.headers["permissions-policy"] == "camera=(), microphone=(), geolocation=()"
+    assert response.headers["cache-control"] == "no-store"
