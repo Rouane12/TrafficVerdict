@@ -113,6 +113,16 @@ export function ReconciliationPanel({ siteId, days = null, variant = "full", onV
           </button>
         </div>
 
+        {!data && !error ? (
+          <div className="state-card state-loading" role="status" aria-live="polite">
+            <span className="state-pulse" aria-hidden="true" />
+            <div>
+              <strong>Analyzing synced evidence…</strong>
+              <p className="muted small">TrafficVerdict is normalizing the selected window and running deterministic rules.</p>
+            </div>
+          </div>
+        ) : null}
+
         {data ? (
           <div className="verdict-summary">
             <div className="verdict-summary-count">
@@ -138,7 +148,15 @@ export function ReconciliationPanel({ siteId, days = null, variant = "full", onV
           </div>
         ) : null}
 
-        {error ? <p className="provider-error reconciliation-summary-error">{error}</p> : null}
+        {error ? (
+          <div className="state-card state-error reconciliation-summary-error" role="alert">
+            <div>
+              <strong>We couldn’t build this verdict.</strong>
+              <p className="muted small">{error}</p>
+            </div>
+            <button className="button ghost compact" type="button" onClick={() => void refresh()}>Try again</button>
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -161,7 +179,25 @@ export function ReconciliationPanel({ siteId, days = null, variant = "full", onV
           </button>
         </div>
 
+        {!data && !error ? (
+          <div className="state-card state-loading" role="status" aria-live="polite">
+            <span className="state-pulse" aria-hidden="true" />
+            <div>
+              <strong>Reconciling your sources…</strong>
+              <p className="muted small">This should only take a moment.</p>
+            </div>
+          </div>
+        ) : null}
+
         {data ? (
+          data.finding_count === 0 ? (
+            <div className="state-card state-empty">
+              <div>
+                <strong>No findings for this window.</strong>
+                <p className="muted small">The available evidence did not trigger any reconciliation rule. This is not a guarantee that tracking is perfect.</p>
+              </div>
+            </div>
+          ) : (
           <div className="finding-list">
             {data.findings.map((finding) => (
               <article className={`finding-card severity-${finding.severity}`} key={`${finding.rule_id}-${finding.title}`}>
@@ -184,9 +220,18 @@ export function ReconciliationPanel({ siteId, days = null, variant = "full", onV
               </article>
             ))}
           </div>
+          )
         ) : null}
 
-        {error ? <p className="provider-error">{error}</p> : null}
+        {error ? (
+          <div className="state-card state-error" role="alert">
+            <div>
+              <strong>Reconciliation couldn’t load.</strong>
+              <p className="muted small">{error}</p>
+            </div>
+            <button className="button ghost compact" type="button" onClick={() => void refresh()}>Try again</button>
+          </div>
+        ) : null}
       </section>
 
       {selectedFinding ? (
