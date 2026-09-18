@@ -12,7 +12,7 @@ from app.services.scheduled_sync import (
 )
 
 
-async def run_cycle(*, force: bool = False) -> dict[str, int]:
+async def run_cycle(*, force: bool = False) -> dict[str, object]:
     with SessionLocal() as db:
         recovered = recover_stale_jobs(db)
         queued = enqueue_due_sync_jobs(
@@ -22,6 +22,8 @@ async def run_cycle(*, force: bool = False) -> dict[str, int]:
             force=force,
         )
         processed = await process_due_sync_jobs(db, limit=settings.sync_worker_batch_size)
+        outcomes = [f"{job.provider}:{job.status}" for job in processed]
+        known_statuses = {"succeeded", "queued", "failed", "skipped"}
         return {
             "recovered": recovered,
             "queued": len(queued),
@@ -30,6 +32,8 @@ async def run_cycle(*, force: bool = False) -> dict[str, int]:
             "retrying": sum(job.status == "queued" for job in processed),
             "failed": sum(job.status == "failed" for job in processed),
             "skipped": sum(job.status == "skipped" for job in processed),
+            "other": sum(job.status not in known_statuses for job in processed),
+            "outcomes": outcomes,
         }
 
 
@@ -45,8 +49,11 @@ async def worker_loop(*, once: bool, force: bool = False) -> None:
             f" retrying={stats['retrying']}"
             f" failed={stats['failed']}"
             f" skipped={stats['skipped']}"
+            f" other={stats['other']}"
             f" force={'yes' if force else 'no'}"
         )
+        if stats["outcomes"]:
+            print("  outcomes: " + ", ".join(stats["outcomes"]))
         if once:
             return
         await asyncio.sleep(settings.sync_worker_poll_seconds)
