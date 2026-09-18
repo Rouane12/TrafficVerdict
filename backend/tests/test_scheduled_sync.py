@@ -66,3 +66,30 @@ def test_due_job_enqueue_is_deduplicated_by_site_provider_and_day() -> None:
         jobs = db.scalars(select(SyncJob)).all()
         assert len(jobs) == 1
         assert jobs[0].status == "queued"
+
+
+def test_force_enqueue_ignores_recent_sync_and_marks_probe_job() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+    now = datetime(2026, 9, 18, 18, 0, tzinfo=timezone.utc)
+    site_id = UUID("22222222-2222-2222-2222-222222222222")
+
+    with Session() as db:
+        db.add(
+            Connection(
+                site_id=site_id,
+                provider="google_analytics",
+                status="connected",
+                external_resource_id="properties/456",
+                last_synced_at=now - timedelta(minutes=5),
+            )
+        )
+        db.commit()
+
+        jobs = enqueue_due_sync_jobs(db, now=now, interval_hours=24, force=True)
+
+        assert len(jobs) == 1
+        assert jobs[0].job_type == "forced_probe"
+        assert jobs[0].idempotency_key.startswith(f"forced_probe:{site_id}:google_analytics:")
