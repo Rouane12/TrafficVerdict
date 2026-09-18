@@ -655,3 +655,67 @@ h1 { font-size: clamp(2.8rem, 8vw, 5.5rem); line-height: 0.98; letter-spacing: -
     grid-template-columns: 1fr;
   }
 }
+
+
+/* V1 hardening — account data controls */
+.account-data-disclosure {
+  margin-top: 22px;
+  padding: 0;
+  overflow: hidden;
+}
+.account-data-disclosure > summary {
+  cursor: pointer;
+  padding: 18px 20px;
+  font-weight: 700;
+}
+.account-data-body {
+  display: grid;
+  gap: 18px;
+  padding: 0 20px 20px;
+}
+.account-data-section,
+.account-danger-zone {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.account-data-section {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.account-data-section h2,
+.account-danger-zone h2 {
+  margin: 6px 0 8px;
+  font-size: 1.15rem;
+}
+.account-data-section p,
+.account-danger-zone p {
+  max-width: 760px;
+  line-height: 1.55;
+}
+.account-danger-zone {
+  border-color: #603737;
+}
+.account-delete-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.55fr) auto;
+  gap: 10px;
+}
+.danger-button {
+  background: transparent;
+  color: var(--danger);
+  border-color: #744242;
+}
+.danger-button:hover:not(:disabled) {
+  background: rgba(255, 155, 155, 0.08);
+}
+
+@media (max-width: 760px) {
+  .account-data-section,
+  .account-delete-form {
+    grid-template-columns: 1fr;
+  }
+}
