@@ -103,6 +103,8 @@ The API sends:
 
 The Next.js frontend sends the same baseline browser security headers.
 
+For browser state-changing requests, the API rejects an explicitly supplied `Origin` header when it does not match the configured frontend origin. This supplements SameSite cookies and the single-origin CORS policy.
+
 ## Logging
 
 Application code must not print or log OAuth tokens, Cloudflare API tokens, session cookies, passwords, authorization headers, or encryption secrets.
