@@ -49,7 +49,9 @@ def cases() -> dict[str, dict]:
 
     crawler_spike = deepcopy(normal)
     crawler_spike["cloudflare"]["metrics"]["requests"] = 900000
-    crawler_spike["cloudflare"]["breakdowns"]["daily"][-1]["requests"] = 500000
+    # Put the spike on the last day shared by all three sources (GSC ends on 2026-09-14)
+    # so reconciliation evaluates it inside the canonical comparison window.
+    crawler_spike["cloudflare"]["breakdowns"]["daily"][-3]["requests"] = 500000
 
     ga4_outage = deepcopy(normal)
     ga4_outage["google_analytics"] = None
