@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { AnomaliesPanel } from "./anomalies-panel";
 import { CloudflarePanel } from "./cloudflare-panel";
 import { GoogleAnalyticsPanel } from "./google-analytics-panel";
 import { NormalizationPanel } from "./normalization-panel";
@@ -38,7 +39,7 @@ export function SiteExperience({ site }: { site: Site }) {
           <h2>{site.name}</h2>
           <p className="muted">{site.domain} · {site.timezone}</p>
         </div>
-        <span className="status">Milestone 7</span>
+        <span className="status">Milestone 8</span>
       </div>
 
       <nav className="experience-tabs" aria-label={`${site.name} dashboard views`}>
@@ -143,15 +144,12 @@ export function SiteExperience({ site }: { site: Site }) {
         <div className="experience-view">
           <section className="experience-intro compact-intro">
             <span className="eyebrow">Anomalies</span>
-            <h3>No historical anomaly timeline yet.</h3>
+            <h3>What changed compared with the previous week?</h3>
             <p className="muted">
-              TrafficVerdict can explain the current evidence now. Historical change detection needs repeated scheduled snapshots, which begins in Milestone 8. Nothing is being inferred from history we do not have.
+              TrafficVerdict compares synced daily history and flags large changes or source relationships that moved unusually. It reports the pattern without guessing the cause.
             </p>
           </section>
-          <div className="experience-empty-state">
-            <strong>Current state is available</strong>
-            <p className="muted small">Use Overview for the current verdict. This view will gain a real timeline once historical baselines exist.</p>
-          </div>
+          <AnomaliesPanel siteId={site.id} />
         </div>
       ) : null}
     </article>
