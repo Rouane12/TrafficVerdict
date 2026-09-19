@@ -30,6 +30,8 @@ def validate_runtime_settings(config: Settings) -> None:
         errors.append("CREDENTIAL_ENCRYPTION_SECRET must be a strong production secret")
     if config.auth_secret == config.credential_encryption_secret:
         errors.append("AUTH_SECRET and CREDENTIAL_ENCRYPTION_SECRET must be different")
+    if _looks_insecure_secret(config.sync_trigger_secret):
+        errors.append("SYNC_TRIGGER_SECRET must be a strong production secret")
     if not config.cookie_secure:
         errors.append("COOKIE_SECURE must be true in production")
 
