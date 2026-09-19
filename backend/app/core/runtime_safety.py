@@ -39,12 +39,14 @@ def validate_runtime_settings(config: Settings) -> None:
     if frontend.scheme != "https":
         errors.append("FRONTEND_ORIGIN must use https in production")
 
-    for label, uri in (
-        ("GOOGLE_REDIRECT_URI", config.google_redirect_uri),
-        ("GOOGLE_SEARCH_CONSOLE_REDIRECT_URI", config.google_search_console_redirect_uri),
-    ):
-        if uri and urlparse(uri).scheme != "https":
-            errors.append(f"{label} must use https in production")
+    google_oauth_configured = bool(config.google_client_id or config.google_client_secret)
+    if google_oauth_configured:
+        for label, uri in (
+            ("GOOGLE_REDIRECT_URI", config.google_redirect_uri),
+            ("GOOGLE_SEARCH_CONSOLE_REDIRECT_URI", config.google_search_console_redirect_uri),
+        ):
+            if not uri or urlparse(uri).scheme != "https":
+                errors.append(f"{label} must use https in production when Google OAuth is configured")
 
     if errors:
         joined = "; ".join(errors)
