@@ -19,9 +19,6 @@ services:
       - key: SYNC_TRIGGER_SECRET
         generateValue: true
       - key: FRONTEND_ORIGIN
-        fromService:
-          name: trafficverdict
-          type: web
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://trafficverdict.app
       - key: DATABASE_URL
         sync: false
