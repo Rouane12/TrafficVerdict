@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     sync_worker_batch_size: int = 10
     sync_job_max_attempts: int = 3
 
+    frontend_static_dir: str = ""
+    sync_trigger_secret: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
