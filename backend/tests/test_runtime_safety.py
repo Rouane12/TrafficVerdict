@@ -10,6 +10,7 @@ def _production_settings(**overrides) -> Settings:
         "frontend_origin": "https://trafficverdict.example",
         "auth_secret": "a" * 48,
         "credential_encryption_secret": "b" * 48,
+        "sync_trigger_secret": "c" * 48,
         "cookie_secure": True,
         "google_redirect_uri": "https://api.trafficverdict.example/api/integrations/google/callback",
         "google_search_console_redirect_uri": "https://api.trafficverdict.example/api/integrations/search-console/callback",
@@ -27,6 +28,7 @@ def test_safe_production_settings_pass() -> None:
     [
         ("auth_secret", "trafficverdict-local-dev-secret-change-before-production", "AUTH_SECRET"),
         ("credential_encryption_secret", "replace-this-with-a-different-long-random-secret", "CREDENTIAL_ENCRYPTION_SECRET"),
+        ("sync_trigger_secret", "short", "SYNC_TRIGGER_SECRET"),
         ("cookie_secure", False, "COOKIE_SECURE"),
         ("frontend_origin", "http://trafficverdict.example", "FRONTEND_ORIGIN"),
         ("google_redirect_uri", "http://api.example/callback", "GOOGLE_REDIRECT_URI"),
