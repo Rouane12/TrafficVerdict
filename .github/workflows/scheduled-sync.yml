@@ -1,0 +1,29 @@
+name: TrafficVerdict Scheduled Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+jobs:
+  trigger-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger TrafficVerdict sync cycle
+        env:
+          TRAFFICVERDICT_URL: ${{ secrets.TRAFFICVERDICT_URL }}
+          TRAFFICVERDICT_SYNC_TRIGGER_SECRET: ${{ secrets.TRAFFICVERDICT_SYNC_TRIGGER_SECRET }}
+        run: |
+          if [ -z "$TRAFFICVERDICT_URL" ] || [ -z "$TRAFFICVERDICT_SYNC_TRIGGER_SECRET" ]; then
+            echo "Scheduled sync secrets are not configured yet; skipping."
+            exit 0
+          fi
+
+          curl --fail-with-body \
+            --retry 3 \
+            --retry-all-errors \
+            --retry-delay 20 \
+            --max-time 300 \
+            -X POST \
+            -H "Authorization: Bearer $TRAFFICVERDICT_SYNC_TRIGGER_SECRET" \
+            "$TRAFFICVERDICT_URL/api/internal/scheduled-sync"
