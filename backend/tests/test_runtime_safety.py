@@ -12,6 +12,8 @@ def _production_settings(**overrides) -> Settings:
         "credential_encryption_secret": "b" * 48,
         "sync_trigger_secret": "c" * 48,
         "cookie_secure": True,
+        "google_client_id": "production-client-id",
+        "google_client_secret": "production-client-secret",
         "google_redirect_uri": "https://api.trafficverdict.example/api/integrations/google/callback",
         "google_search_console_redirect_uri": "https://api.trafficverdict.example/api/integrations/search-console/callback",
     }
@@ -21,6 +23,17 @@ def _production_settings(**overrides) -> Settings:
 
 def test_safe_production_settings_pass() -> None:
     validate_runtime_settings(_production_settings())
+
+
+def test_production_can_boot_before_google_oauth_is_configured() -> None:
+    validate_runtime_settings(
+        _production_settings(
+            google_client_id="",
+            google_client_secret="",
+            google_redirect_uri="http://localhost:8000/api/integrations/google/callback",
+            google_search_console_redirect_uri="http://localhost:8000/api/integrations/search-console/callback",
+        )
+    )
 
 
 @pytest.mark.parametrize(
