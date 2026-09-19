@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.changes import router as changes_router
@@ -7,6 +10,7 @@ from app.api.routes.cloudflare import router as cloudflare_router
 from app.api.routes.google_analytics import router as google_analytics_router
 from app.api.routes.google_search_console import router as google_search_console_router
 from app.api.routes.health import router as health_router
+from app.api.routes.internal import router as internal_router
 from app.api.routes.normalization import router as normalization_router
 from app.api.routes.reconciliation import router as reconciliation_router
 from app.api.routes.sites import router as sites_router
@@ -56,6 +60,7 @@ async def security_headers(request, call_next):
     return response
 
 app.include_router(health_router, prefix="/api")
+app.include_router(internal_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
 app.include_router(workspaces_router, prefix="/api")
 app.include_router(sites_router, prefix="/api")
@@ -67,6 +72,12 @@ app.include_router(reconciliation_router, prefix="/api")
 app.include_router(changes_router, prefix="/api")
 
 
-@app.get("/")
-def root() -> dict[str, str]:
+@app.get("/api")
+def api_root() -> dict[str, str]:
     return {"name": "TrafficVerdict API", "status": "running"}
+
+
+if settings.frontend_static_dir:
+    static_dir = Path(settings.frontend_static_dir)
+    if static_dir.is_dir():
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
