@@ -30,7 +30,7 @@ def _context():
         db.add(
             User(
                 id=user_id,
-                email="owner@example.test",
+                email="owner@example.com",
                 display_name="Owner",
                 password_hash=hash_password("old-password"),
             )
@@ -56,10 +56,10 @@ def test_forgot_password_is_generic_and_stores_only_hash(monkeypatch) -> None:
     monkeypatch.setattr(auth_routes, "send_password_reset_email", fake_send)
 
     try:
-        response = client.post("/api/auth/forgot-password", json={"email": "owner@example.test"})
+        response = client.post("/api/auth/forgot-password", json={"email": "owner@example.com"})
         assert response.status_code == 202
         assert "If an account exists" in response.json()["message"]
-        assert delivered["email"] == "owner@example.test"
+        assert delivered["email"] == "owner@example.com"
 
         with Session() as db:
             stored = db.scalar(select(PasswordResetToken).where(PasswordResetToken.user_id == user_id))
@@ -67,7 +67,7 @@ def test_forgot_password_is_generic_and_stores_only_hash(monkeypatch) -> None:
             assert delivered["token"] not in stored.token_hash
             assert len(stored.token_hash) == 64
 
-        missing = client.post("/api/auth/forgot-password", json={"email": "missing@example.test"})
+        missing = client.post("/api/auth/forgot-password", json={"email": "missing@example.com"})
         assert missing.status_code == 202
         assert missing.json()["message"] == response.json()["message"]
     finally:
@@ -84,7 +84,7 @@ def test_reset_password_is_one_time(monkeypatch) -> None:
     monkeypatch.setattr(auth_routes, "send_password_reset_email", fake_send)
 
     try:
-        forgot = client.post("/api/auth/forgot-password", json={"email": "owner@example.test"})
+        forgot = client.post("/api/auth/forgot-password", json={"email": "owner@example.com"})
         assert forgot.status_code == 202
 
         reset = client.post(
