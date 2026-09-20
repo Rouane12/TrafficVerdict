@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+export const dynamic = "force-static";
+
 export const alt = "TrafficVerdict — Understand why your website analytics disagree";
 export const size = {
   width: 1200,
