@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { GuideAuthActions } from "../../components/guide-auth-actions";
 import { PublicFooter } from "../../components/public-footer";
 
 export const metadata: Metadata = {
@@ -19,10 +20,7 @@ export default function GuidePage() {
     <main className="shell public-document">
       <header className="topbar">
         <Link className="brand" href="/">TrafficVerdict</Link>
-        <nav className="topbar-actions">
-          <Link href="/login">Sign in</Link>
-          <Link className="button compact" href="/register">Create account</Link>
-        </nav>
+        <GuideAuthActions />
       </header>
 
       <article className="document-body">
