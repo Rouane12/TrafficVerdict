@@ -111,3 +111,30 @@ def test_reset_password_is_one_time(monkeypatch) -> None:
         assert reused.status_code == 400
     finally:
         app.dependency_overrides.clear()
+
+
+def test_login_does_not_depend_on_password_reset_email(monkeypatch) -> None:
+    _Session, _user_id, client = _context()
+    monkeypatch.setattr(auth_routes, "password_reset_email_configured", lambda: False)
+
+    try:
+        response = client.post(
+            "/api/auth/login",
+            json={"email": "owner@example.com", "password": "old-password"},
+        )
+        assert response.status_code == 200
+        assert response.json()["email"] == "owner@example.com"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_forgot_password_reports_unavailable_when_email_delivery_is_not_configured(monkeypatch) -> None:
+    _Session, _user_id, client = _context()
+    monkeypatch.setattr(auth_routes, "password_reset_email_configured", lambda: False)
+
+    try:
+        response = client.post("/api/auth/forgot-password", json={"email": "owner@example.com"})
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Password reset email is temporarily unavailable"
+    finally:
+        app.dependency_overrides.clear()
