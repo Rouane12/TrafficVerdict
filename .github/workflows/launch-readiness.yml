@@ -1,0 +1,24 @@
+name: TrafficVerdict Launch Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Production URL to verify
+        required: true
+        default: https://trafficverdict.app
+
+jobs:
+  launch-doctor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out deployment branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run launch doctor
+        run: python scripts/launchctl.py --base-url "${{ inputs.base_url }}"
