@@ -29,7 +29,11 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.google_analytics import revoke_connection_tokens
-from app.services.password_reset_email import PasswordResetEmailError, send_password_reset_email
+from app.services.password_reset_email import (
+    PasswordResetEmailError,
+    password_reset_email_configured,
+    send_password_reset_email,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
@@ -70,6 +74,12 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
 
 @router.post("/login", response_model=UserResponse)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> User:
+    if not password_reset_email_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset email is temporarily unavailable",
+        )
+
     email = str(payload.email).strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if user is None or not verify_password(payload.password, user.password_hash):
