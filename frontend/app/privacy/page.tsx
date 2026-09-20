@@ -4,8 +4,14 @@ import Link from "next/link";
 import { PublicFooter } from "../../components/public-footer";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · TrafficVerdict",
-  description: "How TrafficVerdict handles account, analytics, and connection data.",
+  title: "Privacy Policy",
+  description: "How TrafficVerdict handles account, analytics, connection, and synced metric data.",
+  alternates: { canonical: "/privacy/" },
+  openGraph: {
+    title: "Privacy Policy · TrafficVerdict",
+    description: "How TrafficVerdict handles account, analytics, connection, and synced metric data.",
+    url: "/privacy/",
+  },
 };
 
 export default function PrivacyPage() {

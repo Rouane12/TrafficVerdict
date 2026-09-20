@@ -5,7 +5,13 @@ import { PublicFooter } from "../../components/public-footer";
 
 export const metadata: Metadata = {
   title: "How TrafficVerdict Works",
-  description: "A beginner-friendly guide to connecting analytics sources and reading your traffic verdict.",
+  description: "Learn how to connect GA4, Search Console, and Cloudflare, sync your analytics, and read a TrafficVerdict without needing analytics expertise.",
+  alternates: { canonical: "/guide/" },
+  openGraph: {
+    title: "How TrafficVerdict Works",
+    description: "A beginner-friendly guide to connecting analytics sources and understanding your traffic verdict.",
+    url: "/guide/",
+  },
 };
 
 export default function GuidePage() {

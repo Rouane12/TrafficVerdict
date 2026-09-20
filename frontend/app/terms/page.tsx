@@ -4,8 +4,14 @@ import Link from "next/link";
 import { PublicFooter } from "../../components/public-footer";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · TrafficVerdict",
-  description: "Terms for using TrafficVerdict.",
+  title: "Terms of Service",
+  description: "Terms for using TrafficVerdict and its analytics reconciliation features.",
+  alternates: { canonical: "/terms/" },
+  openGraph: {
+    title: "Terms of Service · TrafficVerdict",
+    description: "Terms for using TrafficVerdict and its analytics reconciliation features.",
+    url: "/terms/",
+  },
 };
 
 export default function TermsPage() {
