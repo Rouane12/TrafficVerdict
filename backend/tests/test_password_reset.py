@@ -54,6 +54,7 @@ def test_forgot_password_is_generic_and_stores_only_hash(monkeypatch) -> None:
         delivered["token"] = token
 
     monkeypatch.setattr(auth_routes, "send_password_reset_email", fake_send)
+    monkeypatch.setattr(auth_routes, "password_reset_email_configured", lambda: True)
 
     try:
         response = client.post("/api/auth/forgot-password", json={"email": "owner@example.com"})
@@ -82,6 +83,7 @@ def test_reset_password_is_one_time(monkeypatch) -> None:
         delivered["token"] = token
 
     monkeypatch.setattr(auth_routes, "send_password_reset_email", fake_send)
+    monkeypatch.setattr(auth_routes, "password_reset_email_configured", lambda: True)
 
     try:
         forgot = client.post("/api/auth/forgot-password", json={"email": "owner@example.com"})
