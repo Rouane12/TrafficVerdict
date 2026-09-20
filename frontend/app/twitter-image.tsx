@@ -36,11 +36,11 @@ export default function TwitterImage() {
               alignItems: "center",
               justifyContent: "center",
               color: "#8ee7be",
-              fontSize: 28,
+              fontSize: 20,
               fontWeight: 800,
             }}
           >
-            ✓
+            TV
           </div>
           TrafficVerdict
         </div>
