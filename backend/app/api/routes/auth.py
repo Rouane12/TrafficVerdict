@@ -74,12 +74,6 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
 
 @router.post("/login", response_model=UserResponse)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> User:
-    if not password_reset_email_configured():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Password reset email is temporarily unavailable",
-        )
-
     email = str(payload.email).strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if user is None or not verify_password(payload.password, user.password_hash):
@@ -110,6 +104,12 @@ async def forgot_password(
     payload: ForgotPasswordRequest,
     db: Session = Depends(get_db),
 ) -> MessageResponse:
+    if not password_reset_email_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset email is temporarily unavailable",
+        )
+
     email = str(payload.email).strip().lower()
     user = db.scalar(select(User).where(User.email == email))
     if user is None:
