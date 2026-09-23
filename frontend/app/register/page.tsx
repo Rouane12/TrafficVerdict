@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { PublicFooter } from "../../components/public-footer";
@@ -11,6 +11,23 @@ export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    api("/auth/me")
+      .then(() => {
+        if (active) router.replace("/dashboard");
+      })
+      .catch(() => {
+        if (active) setCheckingSession(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,6 +50,17 @@ export default function RegisterPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="auth-shell shell">
+        <section className="panel auth-panel">
+          <span className="eyebrow">TrafficVerdict</span>
+          <p className="muted">Checking your session…</p>
+        </section>
+      </main>
+    );
   }
 
   return (
