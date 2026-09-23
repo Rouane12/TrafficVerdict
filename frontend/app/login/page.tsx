@@ -51,9 +51,6 @@ export default function LoginPage() {
             <span>Password</span>
             <input className="input" name="password" type="password" autoComplete="current-password" minLength={8} required />
           </label>
-          <div className="auth-help-row">
-            <Link className="text-link small" href="/forgot-password">Forgot password?</Link>
-          </div>
           {error ? <p className="form-error">{error}</p> : null}
           <button className="button" type="submit" disabled={submitting}>
             {submitting ? "Signing in…" : "Sign in"}
