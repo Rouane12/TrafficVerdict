@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: trafficverdict
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: CREDENTIAL_ENCRYPTION_SECRET
+        generateValue: true
+      - key: SYNC_TRIGGER_SECRET
+        generateValue: true
+      - key: FRONTEND_ORIGIN
+        value: https://trafficverdict.app
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://trafficverdict.app/api/integrations/google/callback
+      - key: GOOGLE_SEARCH_CONSOLE_REDIRECT_URI
+        value: https://trafficverdict.app/api/integrations/search-console/callback
+      - key: BREVO_API_KEY
+        sync: false
+      - key: PASSWORD_RESET_FROM_EMAIL
+        sync: false
+      - key: PASSWORD_RESET_FROM_NAME
+        value: TrafficVerdict

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { PublicFooter } from "../../components/public-footer";
 import { api } from "../../lib/api";
 
 export default function RegisterPage() {
@@ -59,10 +60,14 @@ export default function RegisterPage() {
           <button className="button" type="submit" disabled={submitting}>
             {submitting ? "Creating account…" : "Create account"}
           </button>
+          <p className="muted tiny legal-note">
+            By creating an account, you agree to the <Link className="text-link" href="/terms">Terms</Link> and acknowledge the <Link className="text-link" href="/privacy">Privacy Policy</Link>.
+          </p>
         </form>
 
         <p className="muted small">Already have an account? <Link className="text-link" href="/login">Sign in</Link>.</p>
       </section>
+      <PublicFooter />
     </main>
   );
 }

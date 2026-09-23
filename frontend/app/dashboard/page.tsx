@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -177,7 +178,10 @@ export default function DashboardPage() {
           <div className="brand">TrafficVerdict</div>
           <p className="muted small">{user?.display_name || user?.email}</p>
         </div>
-        <button className="button ghost" type="button" onClick={logout}>Sign out</button>
+        <div className="dashboard-nav-actions">
+          <Link className="button ghost" href="/guide">Guide</Link>
+          <button className="button ghost" type="button" onClick={logout}>Sign out</button>
+        </div>
       </header>
 
       <section className="dashboard-header experience-dashboard-header">
@@ -316,6 +320,12 @@ export default function DashboardPage() {
           {accountError ? <p className="form-error">{accountError}</p> : null}
         </div>
       </details>
+
+      <nav className="dashboard-legal-links" aria-label="TrafficVerdict policies">
+        <Link href="/guide">Guide</Link>
+        <Link href="/privacy">Privacy</Link>
+        <Link href="/terms">Terms</Link>
+      </nav>
     </main>
   );
 }

@@ -1,0 +1,70 @@
+name: TrafficVerdict Launch Readiness
+
+on:
+  push:
+    branches:
+      - deployment/public-beta
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Production URL to verify
+        required: true
+        default: https://trafficverdict.app
+
+jobs:
+  launch-doctor:
+    runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ inputs.base_url || 'https://trafficverdict.app' }}
+    steps:
+      - name: Check out deployment branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Wait for production health
+        run: |
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error --max-time 30 "$BASE_URL/api/health"; then
+              echo
+              exit 0
+            fi
+            echo "Production not ready yet (attempt $attempt/20); retrying in 15 seconds..."
+            sleep 15
+          done
+          exit 1
+
+      - name: Run launch doctor
+        run: python scripts/launchctl.py --base-url "$BASE_URL"
+
+      - name: Run production authentication smoke test
+        run: python scripts/production_auth_smoke.py --base-url "$BASE_URL"
+
+      - name: Verify scheduled sync production wiring
+        env:
+          CONFIGURED_URL: ${{ secrets.TRAFFICVERDICT_URL }}
+          SYNC_SECRET: ${{ secrets.TRAFFICVERDICT_SYNC_TRIGGER_SECRET }}
+        run: |
+          if [ -z "$CONFIGURED_URL" ]; then
+            echo "TRAFFICVERDICT_URL repository secret is missing."
+            exit 1
+          fi
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "TRAFFICVERDICT_SYNC_TRIGGER_SECRET repository secret is missing."
+            exit 1
+          fi
+          if [ "${CONFIGURED_URL%/}" != "${BASE_URL%/}" ]; then
+            echo "TRAFFICVERDICT_URL does not match the production base URL."
+            exit 1
+          fi
+          curl --fail-with-body \
+            --retry 3 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --max-time 300 \
+            -X POST \
+            -H "Authorization: Bearer $SYNC_SECRET" \
+            "$CONFIGURED_URL/api/internal/scheduled-sync"

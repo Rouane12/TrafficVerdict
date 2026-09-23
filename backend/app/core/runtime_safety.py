@@ -30,6 +30,8 @@ def validate_runtime_settings(config: Settings) -> None:
         errors.append("CREDENTIAL_ENCRYPTION_SECRET must be a strong production secret")
     if config.auth_secret == config.credential_encryption_secret:
         errors.append("AUTH_SECRET and CREDENTIAL_ENCRYPTION_SECRET must be different")
+    if _looks_insecure_secret(config.sync_trigger_secret):
+        errors.append("SYNC_TRIGGER_SECRET must be a strong production secret")
     if not config.cookie_secure:
         errors.append("COOKIE_SECURE must be true in production")
 
@@ -37,12 +39,14 @@ def validate_runtime_settings(config: Settings) -> None:
     if frontend.scheme != "https":
         errors.append("FRONTEND_ORIGIN must use https in production")
 
-    for label, uri in (
-        ("GOOGLE_REDIRECT_URI", config.google_redirect_uri),
-        ("GOOGLE_SEARCH_CONSOLE_REDIRECT_URI", config.google_search_console_redirect_uri),
-    ):
-        if uri and urlparse(uri).scheme != "https":
-            errors.append(f"{label} must use https in production")
+    google_oauth_configured = bool(config.google_client_id or config.google_client_secret)
+    if google_oauth_configured:
+        for label, uri in (
+            ("GOOGLE_REDIRECT_URI", config.google_redirect_uri),
+            ("GOOGLE_SEARCH_CONSOLE_REDIRECT_URI", config.google_search_console_redirect_uri),
+        ):
+            if not uri or urlparse(uri).scheme != "https":
+                errors.append(f"{label} must use https in production when Google OAuth is configured")
 
     if errors:
         joined = "; ".join(errors)

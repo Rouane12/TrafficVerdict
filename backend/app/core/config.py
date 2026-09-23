@@ -19,10 +19,19 @@ class Settings(BaseSettings):
     google_search_console_scope: str = "https://www.googleapis.com/auth/webmasters.readonly"
     credential_encryption_secret: str = "trafficverdict-local-credential-key-change-before-production"
 
+    # Password reset email delivery (Brevo transactional email).
+    brevo_api_key: str = ""
+    password_reset_from_email: str = ""
+    password_reset_from_name: str = "TrafficVerdict"
+    password_reset_ttl_minutes: int = 30
+
     scheduled_sync_interval_hours: int = 24
     sync_worker_poll_seconds: int = 60
     sync_worker_batch_size: int = 10
     sync_job_max_attempts: int = 3
+
+    frontend_static_dir: str = ""
+    sync_trigger_secret: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

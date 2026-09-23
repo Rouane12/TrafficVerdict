@@ -6,6 +6,7 @@ on:
       - main
       - "milestone-*"
       - v1-hardening
+      - "deployment/**"
   pull_request:
 
 jobs:

@@ -1,5 +1,10 @@
+import hashlib
+import logging
+import secrets
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
@@ -8,15 +13,31 @@ from app.core.security import create_session_token, hash_password, verify_passwo
 from app.db.database import get_db
 from app.models.connection import Connection
 from app.models.metric_snapshot import MetricSnapshot
+from app.models.password_reset_token import PasswordResetToken
 from app.models.site import Site
 from app.models.sync_job import SyncJob
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.models.workspace_member import WorkspaceMember
-from app.schemas.auth import DeleteAccountRequest, LoginRequest, RegisterRequest, UserResponse
+from app.schemas.auth import (
+    DeleteAccountRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    MessageResponse,
+    RegisterRequest,
+    ResetPasswordRequest,
+    UserResponse,
+)
 from app.services.google_analytics import revoke_connection_tokens
+from app.services.password_reset_email import (
+    PasswordResetEmailError,
+    password_reset_email_configured,
+    send_password_reset_email,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
+PASSWORD_RESET_MESSAGE = "If an account exists for that email, a password reset link has been sent."
 
 
 def _set_session_cookie(response: Response, user: User) -> None:
@@ -70,6 +91,118 @@ def logout(response: Response) -> None:
         secure=settings.cookie_secure,
         samesite="lax",
     )
+
+
+
+
+def _password_reset_hash(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+@router.post("/forgot-password", response_model=MessageResponse, status_code=status.HTTP_202_ACCEPTED)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    if not password_reset_email_configured():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Password reset email is temporarily unavailable",
+        )
+
+    email = str(payload.email).strip().lower()
+    user = db.scalar(select(User).where(User.email == email))
+    if user is None:
+        return MessageResponse(message=PASSWORD_RESET_MESSAGE)
+
+    now = datetime.now(timezone.utc)
+    recent = db.scalar(
+        select(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+            PasswordResetToken.expires_at > now,
+            PasswordResetToken.created_at >= now - timedelta(seconds=60),
+        )
+        .order_by(PasswordResetToken.created_at.desc())
+        .limit(1)
+    )
+    if recent is not None:
+        return MessageResponse(message=PASSWORD_RESET_MESSAGE)
+
+    token = secrets.token_urlsafe(32)
+    reset = PasswordResetToken(
+        user_id=user.id,
+        token_hash=_password_reset_hash(token),
+        expires_at=now + timedelta(minutes=settings.password_reset_ttl_minutes),
+    )
+    db.add(reset)
+    db.commit()
+
+    try:
+        await send_password_reset_email(user.email, token)
+    except PasswordResetEmailError:
+        logger.exception("Unable to deliver password reset email")
+        db.delete(reset)
+        db.commit()
+        return MessageResponse(message=PASSWORD_RESET_MESSAGE)
+
+    db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.id != reset.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    db.commit()
+    return MessageResponse(message=PASSWORD_RESET_MESSAGE)
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> MessageResponse:
+    now = datetime.now(timezone.utc)
+    token_hash = _password_reset_hash(payload.token)
+    reset = db.scalar(
+        select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash)
+    )
+    if reset is None or reset.used_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This password reset link is invalid or has already been used",
+        )
+
+    expires_at = reset.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This password reset link has expired",
+        )
+
+    user = db.get(User, reset.user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This password reset link is invalid",
+        )
+
+    user.password_hash = hash_password(payload.password)
+    db.execute(
+        update(PasswordResetToken)
+        .where(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+    db.commit()
+    return MessageResponse(message="Password updated. You can now sign in.")
 
 
 @router.get("/me", response_model=UserResponse)
