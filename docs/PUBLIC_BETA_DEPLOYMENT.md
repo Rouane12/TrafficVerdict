@@ -50,8 +50,11 @@ Set:
 - `DATABASE_URL` — hosted PostgreSQL connection string;
 - `GOOGLE_CLIENT_ID` — production Google OAuth client ID;
 - `GOOGLE_CLIENT_SECRET` — production Google OAuth client secret;
-- `GOOGLE_REDIRECT_URI`;
-- `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI`.
+- `GOOGLE_REDIRECT_URI` — `https://trafficverdict.app/api/integrations/google/callback`;
+- `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI` — `https://trafficverdict.app/api/integrations/search-console/callback`;
+- `BREVO_API_KEY` — Brevo transactional email API key;
+- `PASSWORD_RESET_FROM_EMAIL` — verified TrafficVerdict sender address;
+- `PASSWORD_RESET_FROM_NAME` — optional display name; defaults to `TrafficVerdict`.
 
 After Render assigns the final public URL, the redirect values are:
 
@@ -98,13 +101,14 @@ After the first deploy:
 1. open `/api/health`;
 2. confirm the public homepage loads;
 3. register a new disposable test account;
-4. create a site;
-5. connect GA4;
-6. connect Search Console;
-7. connect Cloudflare;
-8. run a manual sync;
-9. verify Overview, Reconciliation, Tracking health, and Anomalies;
-10. manually run the GitHub scheduled-sync workflow once and verify the provider sync timestamps update when due.
+4. request a password reset and confirm the Brevo email arrives and the one-time reset link works;
+5. create a site;
+6. connect GA4;
+7. connect Search Console;
+8. connect Cloudflare;
+9. run a manual sync;
+10. verify Overview, Reconciliation, Tracking health, and Anomalies;
+11. manually run the GitHub scheduled-sync workflow once and verify the provider sync timestamps update when due.
 
 Do not migrate the existing local Neural Critic login/session cookie directly. Treat the hosted database as a fresh environment unless you intentionally migrate local data.
 
