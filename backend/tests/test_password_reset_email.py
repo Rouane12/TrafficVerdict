@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pytest
+import asyncio
 
 from app.services import password_reset_email as email_service
 
@@ -37,8 +37,7 @@ def test_password_reset_email_configured_requires_brevo_and_sender(monkeypatch) 
     assert email_service.password_reset_email_configured() is True
 
 
-@pytest.mark.asyncio
-async def test_send_password_reset_email_uses_brevo_transactional_api(monkeypatch) -> None:
+def test_send_password_reset_email_uses_brevo_transactional_api(monkeypatch) -> None:
     capture: dict = {}
 
     monkeypatch.setattr(email_service.settings, "brevo_api_key", "test-key")
@@ -52,7 +51,7 @@ async def test_send_password_reset_email_uses_brevo_transactional_api(monkeypatc
         lambda *args, **kwargs: _Client(capture, *args, **kwargs),
     )
 
-    await email_service.send_password_reset_email("user@example.com", "reset-token")
+    asyncio.run(email_service.send_password_reset_email("user@example.com", "reset-token"))
 
     assert capture["url"] == "https://api.brevo.com/v3/smtp/email"
     assert capture["headers"]["api-key"] == "test-key"
