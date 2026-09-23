@@ -42,3 +42,29 @@ jobs:
 
       - name: Run production authentication smoke test
         run: python scripts/production_auth_smoke.py --base-url "$BASE_URL"
+
+      - name: Verify scheduled sync production wiring
+        env:
+          CONFIGURED_URL: ${{ secrets.TRAFFICVERDICT_URL }}
+          SYNC_SECRET: ${{ secrets.TRAFFICVERDICT_SYNC_TRIGGER_SECRET }}
+        run: |
+          if [ -z "$CONFIGURED_URL" ]; then
+            echo "TRAFFICVERDICT_URL repository secret is missing."
+            exit 1
+          fi
+          if [ -z "$SYNC_SECRET" ]; then
+            echo "TRAFFICVERDICT_SYNC_TRIGGER_SECRET repository secret is missing."
+            exit 1
+          fi
+          if [ "${CONFIGURED_URL%/}" != "${BASE_URL%/}" ]; then
+            echo "TRAFFICVERDICT_URL does not match the production base URL."
+            exit 1
+          fi
+          curl --fail-with-body \
+            --retry 3 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --max-time 300 \
+            -X POST \
+            -H "Authorization: Bearer $SYNC_SECRET" \
+            "$CONFIGURED_URL/api/internal/scheduled-sync"
