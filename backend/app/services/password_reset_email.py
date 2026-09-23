@@ -12,7 +12,7 @@ class PasswordResetEmailError(RuntimeError):
 
 
 def password_reset_email_configured() -> bool:
-    return bool(settings.resend_api_key and settings.password_reset_from_email)
+    return bool(settings.brevo_api_key and settings.password_reset_from_email)
 
 
 async def send_password_reset_email(email: str, token: str) -> None:
@@ -39,19 +39,25 @@ async def send_password_reset_email(email: str, token: str) -> None:
 
     async with httpx.AsyncClient(timeout=20.0) as client:
         response = await client.post(
-            "https://api.resend.com/emails",
+            "https://api.brevo.com/v3/smtp/email",
             headers={
-                "Authorization": f"Bearer {settings.resend_api_key}",
+                "api-key": settings.brevo_api_key,
+                "Accept": "application/json",
                 "Content-Type": "application/json",
             },
             json={
-                "from": settings.password_reset_from_email,
-                "to": [email],
+                "sender": {
+                    "name": settings.password_reset_from_name,
+                    "email": settings.password_reset_from_email,
+                },
+                "to": [{"email": email}],
                 "subject": subject,
-                "text": text,
-                "html": html,
+                "textContent": text,
+                "htmlContent": html,
             },
         )
 
     if not response.is_success:
-        raise PasswordResetEmailError(f"Password reset email provider returned status {response.status_code}")
+        raise PasswordResetEmailError(
+            f"Password reset email provider returned status {response.status_code}"
+        )
