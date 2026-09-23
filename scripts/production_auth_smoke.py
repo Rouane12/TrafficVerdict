@@ -130,6 +130,17 @@ def run(base_url: str) -> None:
             raise SmokeFailure("restored /me: wrong user returned")
         print("✓ restored session verified")
 
+        status, _, payload = _request(opener, base_url, "/")
+        _expect(status, 200, "signed-in landing page", payload)
+        print("✓ signed-in user can visit landing page")
+
+        status, _, payload = _request(opener, base_url, "/api/auth/me")
+        _expect(status, 200, "session after landing page", payload)
+        after_landing = _json(payload)
+        if after_landing.get("email") != email:
+            raise SmokeFailure("session after landing page: wrong user returned")
+        print("✓ landing page preserves authenticated session")
+
         status, _, payload = _request(
             opener,
             base_url,
