@@ -3,6 +3,7 @@ name: TrafficVerdict Launch Readiness
 on:
   push:
     branches:
+      - main
       - deployment/public-beta
   workflow_dispatch:
     inputs:
@@ -17,7 +18,7 @@ jobs:
     env:
       BASE_URL: ${{ inputs.base_url || 'https://trafficverdict.app' }}
     steps:
-      - name: Check out deployment branch
+      - name: Check out release branch
         uses: actions/checkout@v4
 
       - name: Set up Python
