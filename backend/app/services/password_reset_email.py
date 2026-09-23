@@ -21,12 +21,6 @@ async def send_password_reset_email(email: str, token: str) -> None:
 
     reset_url = f"{settings.frontend_origin.rstrip('/')}/reset-password?{urlencode({'token': token})}"
     subject = "Reset your TrafficVerdict password"
-    text = (
-        "We received a request to reset your TrafficVerdict password.\n\n"
-        f"Reset it here: {reset_url}\n\n"
-        f"This link expires in {settings.password_reset_ttl_minutes} minutes and can be used once. "
-        "If you did not request this, you can ignore this email."
-    )
     html = (
         "<div style=\"font-family:Arial,sans-serif;line-height:1.6;color:#111827\">"
         "<h2>Reset your TrafficVerdict password</h2>"
@@ -52,7 +46,6 @@ async def send_password_reset_email(email: str, token: str) -> None:
                 },
                 "to": [{"email": email}],
                 "subject": subject,
-                "textContent": text,
                 "htmlContent": html,
             },
         )
