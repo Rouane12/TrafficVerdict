@@ -1,6 +1,9 @@
 name: TrafficVerdict Launch Readiness
 
 on:
+  push:
+    branches:
+      - deployment/public-beta
   workflow_dispatch:
     inputs:
       base_url:
@@ -11,6 +14,8 @@ on:
 jobs:
   launch-doctor:
     runs-on: ubuntu-latest
+    env:
+      BASE_URL: ${{ inputs.base_url || 'https://trafficverdict.app' }}
     steps:
       - name: Check out deployment branch
         uses: actions/checkout@v4
@@ -20,5 +25,20 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Wait for production health
+        run: |
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error --max-time 30 "$BASE_URL/api/health"; then
+              echo
+              exit 0
+            fi
+            echo "Production not ready yet (attempt $attempt/20); retrying in 15 seconds..."
+            sleep 15
+          done
+          exit 1
+
       - name: Run launch doctor
-        run: python scripts/launchctl.py --base-url "${{ inputs.base_url }}"
+        run: python scripts/launchctl.py --base-url "$BASE_URL"
+
+      - name: Run production authentication smoke test
+        run: python scripts/production_auth_smoke.py --base-url "$BASE_URL"
