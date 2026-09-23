@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PublicAuthActions } from "../components/public-auth-actions";
 import { PublicFooter } from "../components/public-footer";
 
 const pageTitle = "TrafficVerdict — Why Your Website Analytics Disagree";
@@ -67,11 +68,7 @@ export default function HomePage() {
 
       <header className="topbar">
         <Link className="brand" href="/">TrafficVerdict</Link>
-        <nav className="topbar-actions">
-          <Link href="/guide">How it works</Link>
-          <Link href="/login">Sign in</Link>
-          <Link className="button compact" href="/register">Create account</Link>
-        </nav>
+        <PublicAuthActions />
       </header>
 
       <section className="hero">
