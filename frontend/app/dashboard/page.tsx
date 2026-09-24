@@ -175,7 +175,7 @@ export default function DashboardPage() {
     <main className="shell dashboard">
       <header className="dashboard-nav">
         <div>
-          <div className="brand">TrafficVerdict</div>
+          <Link className="brand" href="/">TrafficVerdict</Link>
           <p className="muted small">{user?.display_name || user?.email}</p>
         </div>
         <div className="dashboard-nav-actions">
