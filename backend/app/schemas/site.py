@@ -9,6 +9,12 @@ class SiteCreate(BaseModel):
     timezone: str = Field(default="UTC", min_length=1, max_length=64)
 
 
+class SiteUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    domain: str | None = Field(default=None, min_length=1, max_length=255)
+    timezone: str | None = Field(default=None, min_length=1, max_length=64)
+
+
 class SiteResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
