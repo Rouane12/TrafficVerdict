@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 
 import { AnomaliesPanel } from "./anomalies-panel";
 import { CloudflarePanel } from "./cloudflare-panel";
@@ -9,6 +9,7 @@ import { NormalizationPanel } from "./normalization-panel";
 import { ReconciliationPanel } from "./reconciliation-panel";
 import { SearchConsolePanel } from "./search-console-panel";
 import { TrackingHealthSummary } from "./tracking-health-summary";
+import { api } from "../../lib/api";
 
 type Site = {
   id: string;
@@ -27,9 +28,64 @@ const TABS: { key: ExperienceTab; label: string }[] = [
   { key: "anomalies", label: "Anomalies" },
 ];
 
-export function SiteExperience({ site }: { site: Site }) {
+export function SiteExperience({
+  site,
+  onUpdated,
+  onDeleted,
+}: {
+  site: Site;
+  onUpdated: (site: Site) => void;
+  onDeleted: (siteId: string) => void;
+}) {
   const [tab, setTab] = useState<ExperienceTab>("overview");
   const [analysisDays, setAnalysisDays] = useState<number | null>(null);
+  const [editName, setEditName] = useState(site.name);
+  const [editDomain, setEditDomain] = useState(site.domain);
+  const [editTimezone, setEditTimezone] = useState(site.timezone);
+  const [siteBusy, setSiteBusy] = useState(false);
+  const [siteError, setSiteError] = useState("");
+
+  async function saveSite(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSiteBusy(true);
+    setSiteError("");
+    try {
+      const updated = await api<Site>(`/workspaces/${site.workspace_id}/sites/${site.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editName,
+          domain: editDomain,
+          timezone: editTimezone,
+        }),
+      });
+      setEditName(updated.name);
+      setEditDomain(updated.domain);
+      setEditTimezone(updated.timezone);
+      onUpdated(updated);
+    } catch (caught) {
+      setSiteError(caught instanceof Error ? caught.message : "Unable to update site");
+    } finally {
+      setSiteBusy(false);
+    }
+  }
+
+  async function deleteSite() {
+    if (!window.confirm(`Delete ${site.name} and all synced analytics data for this site? This cannot be undone.`)) {
+      return;
+    }
+
+    setSiteBusy(true);
+    setSiteError("");
+    try {
+      await api<void>(`/workspaces/${site.workspace_id}/sites/${site.id}`, {
+        method: "DELETE",
+      });
+      onDeleted(site.id);
+    } catch (caught) {
+      setSiteError(caught instanceof Error ? caught.message : "Unable to delete site");
+      setSiteBusy(false);
+    }
+  }
 
   return (
     <article className="site-card experience-card">
@@ -151,6 +207,55 @@ export function SiteExperience({ site }: { site: Site }) {
           <AnomaliesPanel siteId={site.id} />
         </div>
       ) : null}
+
+      <details className="panel site-setup-disclosure">
+        <summary>Site settings</summary>
+        <div className="site-setup-body">
+          <span className="eyebrow">Site settings</span>
+          <h3>Edit this site</h3>
+          <form className="site-form" onSubmit={saveSite}>
+            <input
+              className="input"
+              value={editName}
+              onChange={(event) => setEditName(event.target.value)}
+              maxLength={120}
+              required
+              aria-label="Site name"
+            />
+            <input
+              className="input"
+              value={editDomain}
+              onChange={(event) => setEditDomain(event.target.value)}
+              maxLength={255}
+              required
+              aria-label="Site domain"
+            />
+            <input
+              className="input"
+              value={editTimezone}
+              onChange={(event) => setEditTimezone(event.target.value)}
+              maxLength={64}
+              required
+              aria-label="Site timezone"
+            />
+            <button className="button compact" type="submit" disabled={siteBusy}>
+              {siteBusy ? "Saving…" : "Save changes"}
+            </button>
+          </form>
+
+          <div className="account-danger-zone">
+            <span className="eyebrow">Danger zone</span>
+            <p className="muted small">
+              Deleting a site permanently removes its connections, synced metrics, and sync history.
+            </p>
+            <button className="button danger-button" type="button" disabled={siteBusy} onClick={() => void deleteSite()}>
+              Delete site
+            </button>
+          </div>
+
+          {siteError ? <p className="form-error">{siteError}</p> : null}
+        </div>
+      </details>
     </article>
   );
 }
