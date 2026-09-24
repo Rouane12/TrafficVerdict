@@ -11,7 +11,7 @@ from app.db.database import get_db
 from app.models.site import Site
 from app.models.user import User
 from app.models.workspace_member import WorkspaceMember
-from app.schemas.site import SiteCreate, SiteResponse
+from app.schemas.site import SiteCreate, SiteResponse, SiteUpdate
 
 router = APIRouter(prefix="/workspaces", tags=["sites"])
 
@@ -34,6 +34,18 @@ def _normalize_domain(raw_domain: str) -> str:
     if not domain:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Enter a valid domain")
     return domain
+
+
+def _site_in_workspace(db: Session, workspace_id: UUID, site_id: UUID) -> Site:
+    site = db.scalar(
+        select(Site).where(
+            Site.id == site_id,
+            Site.workspace_id == workspace_id,
+        )
+    )
+    if site is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
+    return site
 
 
 @router.get("/{workspace_id}/sites", response_model=list[SiteResponse])
@@ -72,3 +84,47 @@ def create_site(
         ) from exc
     db.refresh(site)
     return site
+
+
+
+@router.patch("/{workspace_id}/sites/{site_id}", response_model=SiteResponse)
+def update_site(
+    workspace_id: UUID,
+    site_id: UUID,
+    payload: SiteUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Site:
+    _require_membership(db, workspace_id, current_user.id)
+    site = _site_in_workspace(db, workspace_id, site_id)
+
+    if "name" in payload.model_fields_set and payload.name is not None:
+        site.name = payload.name.strip()
+    if "domain" in payload.model_fields_set and payload.domain is not None:
+        site.domain = _normalize_domain(payload.domain)
+    if "timezone" in payload.model_fields_set and payload.timezone is not None:
+        site.timezone = payload.timezone.strip()
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This domain is already in the workspace",
+        ) from exc
+    db.refresh(site)
+    return site
+
+
+@router.delete("/{workspace_id}/sites/{site_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_site(
+    workspace_id: UUID,
+    site_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    _require_membership(db, workspace_id, current_user.id)
+    site = _site_in_workspace(db, workspace_id, site_id)
+    db.delete(site)
+    db.commit()
