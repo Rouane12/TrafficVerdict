@@ -220,7 +220,18 @@ export default function DashboardPage() {
             </div>
 
             <div className="site-list">
-              {sites.map((site) => <SiteExperience site={site} key={site.id} />)}
+              {sites.map((site) => (
+                <SiteExperience
+                  site={site}
+                  key={site.id}
+                  onUpdated={(updated) =>
+                    setSites((current) => current.map((item) => item.id === updated.id ? updated : item))
+                  }
+                  onDeleted={(siteId) =>
+                    setSites((current) => current.filter((item) => item.id !== siteId))
+                  }
+                />
+              ))}
             </div>
           </section>
 
