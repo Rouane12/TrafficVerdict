@@ -39,7 +39,6 @@ export function SiteExperience({ site }: { site: Site }) {
           <h2>{site.name}</h2>
           <p className="muted">{site.domain} · {site.timezone}</p>
         </div>
-        <span className="status">Milestone 8</span>
       </div>
 
       <nav className="experience-tabs" aria-label={`${site.name} dashboard views`}>
